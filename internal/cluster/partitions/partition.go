@@ -82,7 +82,7 @@ func (p *Partition) Length() int {
 	var length int
 	p.Map().Range(func(_, tmp interface{}) bool {
 		u := tmp.(Fragment)
-		length += u.Length()
+		length += u.Stats().Length
 		// Continue scanning.
 		return true
 	})

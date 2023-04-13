@@ -78,7 +78,7 @@ func (b *Balancer) scanPartition(sign uint64, part *partitions.Partition, owners
 
 	part.Map().Range(func(rawName, rawFragment interface{}) bool {
 		f := rawFragment.(partitions.Fragment)
-		if f.Length() == 0 {
+		if f.Stats().Length == 0 {
 			return false
 		}
 		name := strings.TrimPrefix(rawName.(string), "dmap.")

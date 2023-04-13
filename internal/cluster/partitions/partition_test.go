@@ -35,10 +35,6 @@ func (tf *testFragment) Name() string {
 	return "test-data-structure"
 }
 
-func (tf *testFragment) Length() int {
-	return tf.length
-}
-
 func (tf *testFragment) Move(_ *Partition, _ string, _ []discovery.Member) error {
 	return nil
 }

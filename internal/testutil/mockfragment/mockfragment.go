@@ -51,12 +51,6 @@ func (f *MockFragment) Name() string {
 	return "Mock-DMap"
 }
 
-func (f *MockFragment) Length() int {
-	f.RLock()
-	defer f.RUnlock()
-	return len(f.m)
-}
-
 func (f *MockFragment) Put(key string, value interface{}) {
 	f.Lock()
 	defer f.Unlock()

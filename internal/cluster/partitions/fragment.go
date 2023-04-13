@@ -22,7 +22,6 @@ import (
 type Fragment interface {
 	Name() string
 	Stats() storage.Stats
-	Length() int
 	Move(*Partition, string, []discovery.Member) error
 	Compaction() (bool, error)
 	Destroy() error

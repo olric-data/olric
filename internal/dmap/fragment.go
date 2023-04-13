@@ -39,6 +39,9 @@ type fragment struct {
 }
 
 func (f *fragment) Stats() storage.Stats {
+	f.RLock()
+	defer f.RUnlock()
+
 	return f.storage.Stats()
 }
 
@@ -68,13 +71,6 @@ func (f *fragment) Close() error {
 
 func (f *fragment) Name() string {
 	return "DMap"
-}
-
-func (f *fragment) Length() int {
-	f.RLock()
-	defer f.RUnlock()
-
-	return f.storage.Stats().Length
 }
 
 func (f *fragment) Move(part *partitions.Partition, name string, owners []discovery.Member) error {
