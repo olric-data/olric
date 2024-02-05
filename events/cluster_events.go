@@ -15,17 +15,15 @@
 package events
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/buraksezer/olric/internal/bufpool"
 	"github.com/buraksezer/olric/internal/util"
 )
-
-var pool = bufpool.New()
 
 const (
 	ClusterEventsChannel       = "cluster.events"
@@ -41,9 +39,7 @@ type Event interface {
 
 // encodeEvents encodes given interface to its JSON representation and preserves the order in fields slice.
 func encodeEvent(data interface{}, fields []string, valueExtractor func(r reflect.Value, field string) (interface{}, error)) (string, error) {
-	buf := pool.Get()
-	defer pool.Put(buf)
-
+	buf := bytes.NewBuffer(nil)
 	buf.WriteString("{")
 	r := reflect.Indirect(reflect.ValueOf(data))
 	for i, field := range fields {
