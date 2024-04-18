@@ -85,7 +85,7 @@ var (
 	ErrNoSuchLock = errors.New("no such lock")
 
 	// ErrClusterQuorum means that the cluster could not reach a healthy numbers of members to operate.
-	ErrClusterQuorum = errors.New("cannot be reached cluster quorum to operate")
+	ErrClusterQuorum = errors.New("failed to find enough peers to create quorum")
 
 	// ErrKeyTooLarge means that the given key is too large to process.
 	// Maximum length of a key is 256 bytes.
