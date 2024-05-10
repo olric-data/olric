@@ -44,7 +44,11 @@ func New() *MockFragment {
 }
 
 func (f *MockFragment) Stats() storage.Stats {
-	return storage.Stats{}
+	f.Lock()
+	defer f.Unlock()
+	return storage.Stats{
+		Length: len(f.m),
+	}
 }
 
 func (f *MockFragment) Name() string {
