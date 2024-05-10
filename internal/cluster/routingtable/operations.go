@@ -25,6 +25,9 @@ import (
 )
 
 func (r *RoutingTable) lengthOfPartCommandHandler(conn redcon.Conn, cmd redcon.Command) {
+	// The command handlers of the routing table service should wait for the cluster join event.
+	<-r.joined
+
 	lengthOfPartCmd, err := protocol.ParseLengthOfPartCommand(cmd)
 	if err != nil {
 		protocol.WriteError(conn, err)
@@ -61,6 +64,9 @@ func (r *RoutingTable) verifyRoutingTable(id uint64, table map[uint64]*route) er
 }
 
 func (r *RoutingTable) updateRoutingCommandHandler(conn redcon.Conn, cmd redcon.Command) {
+	// The command handlers of the routing table service should wait for the cluster join event.
+	<-r.joined
+
 	r.updateRoutingMtx.Lock()
 	defer r.updateRoutingMtx.Unlock()
 

@@ -346,6 +346,13 @@ func (db *Olric) Start() error {
 		return err
 	}
 
+	// First, we need to join the cluster. Then, the routing table has been started.
+	if err := db.rt.Join(); err != nil {
+		if err != nil {
+			db.log.V(2).Printf("[ERROR] Failed to join the Olric cluster: %v", err)
+		}
+		return err
+	}
 	// Start routing table service and member discovery subsystem.
 	if err := db.rt.Start(); err != nil {
 		if err != nil {

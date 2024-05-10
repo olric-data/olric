@@ -112,6 +112,9 @@ func (mc *mockCluster) addNode(e *environment.Environment) *Balancer {
 		require.NoError(mc.t, err)
 	}
 
+	err = b.rt.Join()
+	require.NoError(mc.t, err)
+
 	err = b.rt.Start()
 	if err != nil {
 		require.NoError(mc.t, err)

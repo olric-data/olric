@@ -142,6 +142,10 @@ func (t *TestCluster) AddMember(e *environment.Environment) service.Service {
 
 	s := t.newService(e)
 	rt := e.Get("routingtable").(*routingtable.RoutingTable)
+	err = rt.Join()
+	if err != nil {
+		panic(fmt.Sprintf("failed to join the Olric cluster: %v", err))
+	}
 	err = rt.Start()
 	if err != nil {
 		panic(fmt.Sprintf("failed to start the routing table: %v", err))

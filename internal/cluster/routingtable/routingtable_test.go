@@ -87,6 +87,10 @@ func (t *testCluster) addNode(c *config.Config) (*RoutingTable, error) {
 
 	srv := testutil.NewServer(c)
 	rt := newRoutingTableForTest(c, srv)
+	err = rt.Join()
+	if err != nil {
+		return nil, err
+	}
 	err = rt.Start()
 	if err != nil {
 		return nil, err

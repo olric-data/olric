@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	ErrServerGone  = errors.New("server is gone")
-	ErrClusterJoin = errors.New("cannot join the cluster")
+	ErrServerGone   = errors.New("server is gone")
+	ErrNotJoinedYet = errors.New("not joined yet")
+	ErrClusterJoin  = errors.New("cannot join the cluster")
 	// ErrOperationTimeout is returned when an operation times out.
 	ErrOperationTimeout = errors.New("operation timeout")
 )

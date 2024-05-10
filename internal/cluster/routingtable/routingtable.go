@@ -71,9 +71,11 @@ type RoutingTable struct {
 	callbacks        []func()
 	callbackMtx      sync.Mutex
 	pushPeriod       time.Duration
-	ctx              context.Context
-	cancel           context.CancelFunc
-	wg               sync.WaitGroup
+	// The command handlers of the routing table service should wait for the cluster join event.
+	joined chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 func registerErrors() {
@@ -108,6 +110,7 @@ func New(e *environment.Environment) *RoutingTable {
 		client:     e.Get("client").(*server.Client),
 		server:     e.Get("server").(*server.Server),
 		pushPeriod: c.RoutingTablePushInterval,
+		joined:     make(chan struct{}),
 		ctx:        ctx,
 		cancel:     cancel,
 	}
@@ -343,7 +346,7 @@ func (r *RoutingTable) pushPeriodically() {
 	}
 }
 
-func (r *RoutingTable) Start() error {
+func (r *RoutingTable) Join() error {
 	err := r.discovery.Start()
 	if err != nil {
 		return err
@@ -361,13 +364,25 @@ func (r *RoutingTable) Start() error {
 	this, err := r.discovery.FindMemberByName(r.config.MemberlistConfig.Name)
 	if err != nil {
 		r.log.V(2).Printf("[ERROR] Failed to get this node in cluster: %v", err)
-		serr := r.discovery.Shutdown()
-		if serr != nil {
-			return serr
+		shutdownError := r.discovery.Shutdown()
+		if shutdownError != nil {
+			return shutdownError
 		}
 		return err
 	}
 	r.this = this
+	close(r.joined)
+	return nil
+}
+
+func (r *RoutingTable) Start() error {
+	select {
+	case <-r.joined:
+		// It's time to start the routing table service. Otherwise, this method will return an error.
+	default:
+		// Not yet, or the join process has failed
+		return ErrNotJoinedYet
+	}
 
 	// Store the current number of members in the member list.
 	// We need this to implement a simple split-brain protection algorithm.
@@ -379,7 +394,7 @@ func (r *RoutingTable) Start() error {
 	// 1 Hour
 	ctx, cancel := context.WithTimeout(r.ctx, time.Hour)
 	defer cancel()
-	err = r.tryWithInterval(ctx, time.Second, func() error {
+	err := r.tryWithInterval(ctx, time.Second, func() error {
 		// Check member count quorum now. If there is no enough peers to work, wait forever.
 		err := r.CheckMemberCountQuorum()
 		if err != nil {
