@@ -28,7 +28,7 @@ type testFragment struct {
 }
 
 func (tf *testFragment) Stats() storage.Stats {
-	return storage.Stats{}
+	return storage.Stats{Length: tf.length}
 }
 
 func (tf *testFragment) Name() string {
