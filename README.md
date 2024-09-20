@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/buraksezer/olric.svg)](https://pkg.go.dev/github.com/buraksezer/olric) [![Coverage Status](https://coveralls.io/repos/github/buraksezer/olric/badge.svg?branch=master)](https://coveralls.io/github/buraksezer/olric?branch=master) [![Build Status](https://travis-ci.org/buraksezer/olric.svg?branch=master)](https://travis-ci.org/buraksezer/olric) [![Go Report Card](https://goreportcard.com/badge/github.com/buraksezer/olric)](https://goreportcard.com/report/github.com/buraksezer/olric) [![Discord](https://img.shields.io/discord/721708998021087273.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ahK7Vjr8We) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Olric is a distributed, in-memory object store. It's designed from the ground up to be distributed, and it can be 
+Olric is a distributed, in-memory key/value store and cache. It's designed from the ground up to be distributed, and it can be 
 used both as an embedded Go library and as a language-independent service.
 
 With Olric, you can instantly create a fast, scalable, shared pool of RAM across a cluster of computers.
@@ -22,7 +22,7 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.5.4](https://github.com/buraksezer/olric/tree/release/v0.5.0#olric-)
+The current production version is [v0.5.6](https://github.com/buraksezer/olric/tree/release/v0.5.0#olric-)
 
 ### About versions
 
@@ -161,20 +161,21 @@ See [Architecture](#architecture) section to see details.
 
 ## Support
 
-You feel free to ask any questions about Olric and possible integration problems.
+We have a few communication channels: 
 
+* [Issue Tracker](https://github.com/buraksezer/olric/issues)
 * [Discord server](https://discord.gg/ahK7Vjr8We)
-* [Mail group on Google Groups](https://groups.google.com/forum/#!forum/olric-user)
-* [GitHub Discussions](https://github.com/buraksezer/olric/discussions)
 
-You also feel free to open an issue on GitHub to report bugs and share feature requests.
+You should know that the issue tracker is only intended for bug reports and feature requests.
+
+Software doesn't maintain itself. If you need support on complex topics or request new features, please consider sponsoring Olric.
 
 ## Installing
 
 With a correctly configured Golang environment:
 
 ```
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.4
+go install github.com/buraksezer/olric/cmd/olricd@v0.5.6
 ```
 
 Now you can start using Olric:
@@ -212,7 +213,7 @@ OK
 With olricd, you can create an Olric cluster with a few commands. This is how to install olricd:
 
 ```bash
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.4
+go install github.com/buraksezer/olric/cmd/olricd@v0.5.6
 ```
 
 Let's create a cluster with the following:
@@ -281,7 +282,7 @@ this repository. `EmbeddedClient` provides a client implementation for [embedded
 Obviously, you can use `ClusterClient` for your embedded-member deployments. But it's good to use `EmbeddedClient` provides 
 a better performance due to localization of the queries.
 
-See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/buraksezer/olric@v0.5.4)
+See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/buraksezer/olric@v0.5.6)
 
 ## Cluster Events
 
