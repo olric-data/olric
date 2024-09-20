@@ -168,7 +168,7 @@ We have a few communication channels:
 
 You should know that the issue tracker is only intended for bug reports and feature requests.
 
-Software doesn't maintain itself. If you need support on complex topics or request new features, please consider sponsoring Olric.
+Software doesn't maintain itself. If you need support on complex topics or request new features, please consider [sponsoring Olric](https://github.com/sponsors/buraksezer).
 
 ## Installing
 
