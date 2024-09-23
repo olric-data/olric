@@ -7,9 +7,9 @@ require (
 	github.com/buraksezer/consistent v0.10.0
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-sockaddr v1.0.5
+	github.com/hashicorp/go-sockaddr v1.0.6
 	github.com/hashicorp/logutils v1.0.0
-	github.com/hashicorp/memberlist v0.5.0
+	github.com/hashicorp/memberlist v0.5.1
 	github.com/miekg/dns v1.1.45 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.2.1
