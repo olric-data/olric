@@ -22,7 +22,7 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.5.6](https://github.com/buraksezer/olric/tree/release/v0.5.0#olric-)
+The current production version is [v0.5.7](https://github.com/buraksezer/olric/tree/release/v0.5.0#olric-)
 
 ### About versions
 
@@ -175,7 +175,7 @@ Software doesn't maintain itself. If you need support on complex topics or reque
 With a correctly configured Golang environment:
 
 ```
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.6
+go install github.com/buraksezer/olric/cmd/olricd@v0.5.7
 ```
 
 Now you can start using Olric:
@@ -213,7 +213,7 @@ OK
 With olricd, you can create an Olric cluster with a few commands. This is how to install olricd:
 
 ```bash
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.6
+go install github.com/buraksezer/olric/cmd/olricd@v0.5.7
 ```
 
 Let's create a cluster with the following:
@@ -282,7 +282,7 @@ this repository. `EmbeddedClient` provides a client implementation for [embedded
 Obviously, you can use `ClusterClient` for your embedded-member deployments. But it's good to use `EmbeddedClient` provides 
 a better performance due to localization of the queries.
 
-See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/buraksezer/olric@v0.5.6)
+See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/buraksezer/olric@v0.5.7)
 
 ## Cluster Events
 
