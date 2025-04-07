@@ -19,12 +19,12 @@ jobs:
 
     steps:
     - name: Install Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Print Go version and environment
       id: vars
@@ -40,7 +40,7 @@ jobs:
         echo "::set-output name=go_cache::$(go env GOCACHE)"
 
     - name: Cache the build cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ${{ steps.vars.outputs.go_cache }}
         key: ${{ runner.os }}-${{ matrix.go }}-go-ci-${{ hashFiles('**/go.sum') }}
@@ -52,10 +52,4 @@ jobs:
         go mod download
 
     - name: Run tests
-      run: |
-        ./cover.sh $HOME/build coverage.out
-
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        path-to-profile: coverage.out
-
+      run: go test ./...
