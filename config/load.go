@@ -307,27 +307,27 @@ func Load(filename string) (*Config, error) {
 		routingTablePushInterval time.Duration
 	)
 
-	if c.Olricd.KeepAlivePeriod != "" {
-		keepAlivePeriod, err = time.ParseDuration(c.Olricd.KeepAlivePeriod)
+	if c.Server.KeepAlivePeriod != "" {
+		keepAlivePeriod, err = time.ParseDuration(c.Server.KeepAlivePeriod)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.keepAlivePeriod: '%s'", c.Olricd.KeepAlivePeriod))
+				fmt.Sprintf("failed to parse server.keepAlivePeriod: '%s'", c.Server.KeepAlivePeriod))
 		}
 	}
 
-	if c.Olricd.IdleClose != "" {
-		idleClose, err = time.ParseDuration(c.Olricd.IdleClose)
+	if c.Server.IdleClose != "" {
+		idleClose, err = time.ParseDuration(c.Server.IdleClose)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.idleClose: '%s'", c.Olricd.IdleClose))
+				fmt.Sprintf("failed to parse server.idleClose: '%s'", c.Server.IdleClose))
 		}
 	}
 
-	if c.Olricd.BootstrapTimeout != "" {
-		bootstrapTimeout, err = time.ParseDuration(c.Olricd.BootstrapTimeout)
+	if c.Server.BootstrapTimeout != "" {
+		bootstrapTimeout, err = time.ParseDuration(c.Server.BootstrapTimeout)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.bootstrapTimeout: '%s'", c.Olricd.BootstrapTimeout))
+				fmt.Sprintf("failed to parse server.bootstrapTimeout: '%s'", c.Server.BootstrapTimeout))
 		}
 	}
 	if c.Memberlist.JoinRetryInterval != "" {
@@ -338,27 +338,27 @@ func Load(filename string) (*Config, error) {
 					c.Memberlist.JoinRetryInterval))
 		}
 	}
-	if c.Olricd.RoutingTablePushInterval != "" {
-		routingTablePushInterval, err = time.ParseDuration(c.Olricd.RoutingTablePushInterval)
+	if c.Server.RoutingTablePushInterval != "" {
+		routingTablePushInterval, err = time.ParseDuration(c.Server.RoutingTablePushInterval)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.routingTablePushInterval: '%s'", c.Olricd.RoutingTablePushInterval))
+				fmt.Sprintf("failed to parse server.routingTablePushInterval: '%s'", c.Server.RoutingTablePushInterval))
 		}
 	}
 
-	if c.Olricd.TriggerBalancerInterval != "" {
-		triggerBalancerInterval, err = time.ParseDuration(c.Olricd.TriggerBalancerInterval)
+	if c.Server.TriggerBalancerInterval != "" {
+		triggerBalancerInterval, err = time.ParseDuration(c.Server.TriggerBalancerInterval)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.triggerBalancerInterval: '%s'", c.Olricd.TriggerBalancerInterval))
+				fmt.Sprintf("failed to parse server.triggerBalancerInterval: '%s'", c.Server.TriggerBalancerInterval))
 		}
 	}
 
-	if c.Olricd.LeaveTimeout != "" {
-		leaveTimeout, err = time.ParseDuration(c.Olricd.LeaveTimeout)
+	if c.Server.LeaveTimeout != "" {
+		leaveTimeout, err = time.ParseDuration(c.Server.LeaveTimeout)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("failed to parse olricd.leaveTimeout: '%s'", c.Olricd.LeaveTimeout))
+				fmt.Sprintf("failed to parse server.leaveTimeout: '%s'", c.Server.LeaveTimeout))
 		}
 	}
 
@@ -380,9 +380,9 @@ func Load(filename string) (*Config, error) {
 	}
 
 	cfg := &Config{
-		BindAddr:                   c.Olricd.BindAddr,
-		BindPort:                   c.Olricd.BindPort,
-		Interface:                  c.Olricd.Interface,
+		BindAddr:                   c.Server.BindAddr,
+		BindPort:                   c.Server.BindPort,
+		Interface:                  c.Server.Interface,
 		ServiceDiscovery:           c.ServiceDiscovery,
 		MemberlistInterface:        c.Memberlist.Interface,
 		MemberlistConfig:           memberlistConfig,
@@ -391,17 +391,17 @@ func Load(filename string) (*Config, error) {
 		JoinRetryInterval:          joinRetryInterval,
 		RoutingTablePushInterval:   routingTablePushInterval,
 		TriggerBalancerInterval:    triggerBalancerInterval,
-		EnableClusterEventsChannel: c.Olricd.EnableClusterEventsChannel,
+		EnableClusterEventsChannel: c.Server.EnableClusterEventsChannel,
 		MaxJoinAttempts:            c.Memberlist.MaxJoinAttempts,
 		Peers:                      c.Memberlist.Peers,
-		PartitionCount:             c.Olricd.PartitionCount,
-		ReplicaCount:               c.Olricd.ReplicaCount,
-		WriteQuorum:                c.Olricd.WriteQuorum,
-		ReadQuorum:                 c.Olricd.ReadQuorum,
-		ReplicationMode:            c.Olricd.ReplicationMode,
-		ReadRepair:                 c.Olricd.ReadRepair,
-		LoadFactor:                 c.Olricd.LoadFactor,
-		MemberCountQuorum:          c.Olricd.MemberCountQuorum,
+		PartitionCount:             c.Server.PartitionCount,
+		ReplicaCount:               c.Server.ReplicaCount,
+		WriteQuorum:                c.Server.WriteQuorum,
+		ReadQuorum:                 c.Server.ReadQuorum,
+		ReplicationMode:            c.Server.ReplicationMode,
+		ReadRepair:                 c.Server.ReadRepair,
+		LoadFactor:                 c.Server.LoadFactor,
+		MemberCountQuorum:          c.Server.MemberCountQuorum,
 		Logger:                     log.New(logOutput, "", log.LstdFlags),
 		LogOutput:                  logOutput,
 		LogVerbosity:               c.Logging.Verbosity,

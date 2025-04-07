@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testConfig = `olricd:
+var testConfig = `server:
   bindAddr: "0.0.0.0"
   bindPort: 3320
   serializer: "msgpack"

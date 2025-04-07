@@ -1,4 +1,4 @@
-olricd:
+server:
   # BindAddr denotes the address that Olric will bind to for communication
   # with other Olric nodes.
   bindAddr: 0.0.0.0

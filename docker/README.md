@@ -26,7 +26,7 @@ Creating docker_consul_1 ... done
 Creating docker_olric_1  ... done
 Creating docker_olric_2  ... done
 Attaching to docker_olric_1
-olric_1      | 2020/08/12 15:53:18 [olricd] pid: 1 has been started on 172.25.0.4:3320
+olric_1      | 2020/08/12 15:53:18 [olric-server] pid: 1 has been started on 172.25.0.4:3320
 olric_1      | 2020/08/12 15:53:18 [INFO] Service discovery plugin is enabled, provider: consul
 olric_1      | 2020/08/12 15:53:18 [DEBUG] memberlist: Stream connection from=172.25.0.3:56830
 olric_1      | 2020/08/12 15:53:19 [ERROR] Join attempt returned error: no peers found => olric.go:2

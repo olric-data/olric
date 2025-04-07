@@ -38,7 +38,7 @@ This document only covers `v0.5.x` and later. See v0.4.x documents [here](https:
 * Implements a distributed hash table,
 * Provides a drop-in replacement for Redis Publish/Subscribe messaging system,
 * Supports both programmatic and declarative configuration, 
-* Embeddable but can be used as a language-independent service with *olricd*,
+* Embeddable but can be used as a language-independent service with *olric-server*,
 * Supports different eviction algorithms (including LRU and TTL),
 * Highly available and horizontally scalable,
 * Provides best-effort consistency guarantees without being a complete CP (indeed PA/EC) solution,
@@ -139,7 +139,7 @@ It's good at distributed caching and publish/subscribe messaging.
 * Only in-memory,
 * Uses Redis protocol,
 * Compatible with existing Redis clients,
-* Embeddable but can be used as a language-independent service with olricd,
+* Embeddable but can be used as a language-independent service with olric-server,
 * GC-friendly storage engine,
 * O(1) running time for lookups,
 * Supports atomic operations,
@@ -175,26 +175,26 @@ Software doesn't maintain itself. If you need support on complex topics or reque
 With a correctly configured Golang environment:
 
 ```
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.7
+go install github.com/buraksezer/olric/cmd/olric-server@v0.5.7
 ```
 
 Now you can start using Olric:
 
 ```
-olricd -c cmd/olricd/olricd-local.yaml
+olric-server -c cmd/olric-server/olric-server-local.yaml
 ```
 
 See [Configuration](#configuration) section to create your cluster properly.
 
 ### Docker
 
-You can launch `olricd` Docker container by running the following command. 
+You can launch `olric-server` Docker container by running the following command. 
 
 ```bash
-docker run -p 3320:3320 olricio/olricd:v0.5.4
+docker run -p 3320:3320 olricio/olric-server:v0.5.4
 ``` 
 
-This command will pull olricd Docker image and run a new Olric Instance. You should know that the container exposes 
+This command will pull olric-server Docker image and run a new Olric Instance. You should know that the container exposes 
 `3320` and `3322` ports. 
 
 Now, you can access an Olric cluster using any Redis client including `redis-cli`:
@@ -210,23 +210,23 @@ OK
 
 ## Getting Started
 
-With olricd, you can create an Olric cluster with a few commands. This is how to install olricd:
+With olric-server, you can create an Olric cluster with a few commands. This is how to install olric-server:
 
 ```bash
-go install github.com/buraksezer/olric/cmd/olricd@v0.5.7
+go install github.com/buraksezer/olric/cmd/olric-server@v0.5.7
 ```
 
 Let's create a cluster with the following:
 
 ```
-olricd -c <YOUR_CONFIG_FILE_PATH>
+olric-server -c <YOUR_CONFIG_FILE_PATH>
 ```
 
-You can find the sample configuration file under `cmd/olricd/olricd-local.yaml`. It can perfectly run with single node. 
-olricd also supports `OLRICD_CONFIG` environment variable to set configuration. Just like that: 
+You can find the sample configuration file under `cmd/olric-server/olric-server-local.yaml`. It can perfectly run with single node. 
+olric-server also supports `OLRIC_SERVER_CONFIG` environment variable to set configuration. Just like that: 
 
 ```
-OLRICD_CONFIG=<YOUR_CONFIG_FILE_PATH> olricd
+OLRIC_SERVER_CONFIG=<YOUR_CONFIG_FILE_PATH> olric-server
 ```
 
 Olric uses [hashicorp/memberlist](https://github.com/hashicorp/memberlist) for failure detection and cluster membership. 
@@ -934,13 +934,13 @@ You can also import configuration from a YAML file by using the `Load` function:
 c, err := config.Load(path/to/olric.yaml)
 ```
 
-A sample configuration file in YAML format can be found [here](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml). This may be the most appropriate way to manage the Olric configuration.
+A sample configuration file in YAML format can be found [here](https://github.com/buraksezer/olric/blob/master/cmd/olric-server/olric-server.yaml). This may be the most appropriate way to manage the Olric configuration.
 
 
 ### Client-Server Mode
 
-Olric provides **olricd** to implement client-server mode. olricd gets a YAML file for the configuration. The most basic  functionality of olricd is that 
-translating YAML configuration into Olric's configuration struct. A sample `olricd.yaml` file  is being provided [here](https://github.com/buraksezer/olric/blob/master/cmd/olricd/olricd.yaml).
+Olric provides **olric-server** to implement client-server mode. olric-server gets a YAML file for the configuration. The most basic  functionality of olric-server is that 
+translating YAML configuration into Olric's configuration struct. A sample `olric-server.yaml` file  is being provided [here](https://github.com/buraksezer/olric/blob/master/cmd/olric-server/olric-server.yaml).
 
 ### Network Configuration
 
@@ -1166,7 +1166,7 @@ Every node runs this algorithm independently. The access log is moved along with
 
 #### Configuration of eviction mechanisms
 
-Here is a simple configuration block for `olricd.yaml`: 
+Here is a simple configuration block for `olric-server.yaml`: 
 
 ```
 cache:
@@ -1179,11 +1179,11 @@ cache:
   evictionPolicy: "LRU" # NONE/LRU
 ```
 
-You can also set cache configuration per DMap. Here is a simple configuration for a DMap named `foobar`:
+You can also set cache configuration per DMap. Here is a simple configuration for a DMap named `mydmap`:
 
 ```
 dmaps:
-  foobar:
+  mydmap:
     maxIdleDuration: "60s"
     ttlDuration: "300s"
     maxKeys: 500000 # in-bytes

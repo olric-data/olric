@@ -16,7 +16,7 @@ package loader
 
 import "gopkg.in/yaml.v2"
 
-type olricd struct {
+type server struct {
 	Name                       string  `yaml:"name"`
 	BindAddr                   string  `yaml:"bindAddr"`
 	BindPort                   int     `yaml:"bindPort"`
@@ -132,7 +132,7 @@ type serviceDiscovery map[string]interface{}
 type Loader struct {
 	Memberlist       memberlist       `yaml:"memberlist"`
 	Logging          logging          `yaml:"logging"`
-	Olricd           olricd           `yaml:"olricd"`
+	Server           server           `yaml:"server"`
 	Client           client           `yaml:"client"`
 	DMaps            dmaps            `yaml:"dmaps"`
 	ServiceDiscovery serviceDiscovery `yaml:"serviceDiscovery"`

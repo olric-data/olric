@@ -1,7 +1,7 @@
 #
 # IMPORTANT NOTE: This configuration file is intended for testing and local development.
 #
-olricd:
+server:
   # BindAddr denotes the address that Olric will bind to for communication
   # with other Olric nodes.
   bindAddr: localhost
@@ -272,4 +272,4 @@ dmaps:
 #serviceDiscovery:
 #  provider: "k8s"
 #  path: "/Users/buraksezer/go/src/github.com/buraksezer/olric-cloud-plugin/olric-cloud-plugin.so"
-#  args: 'label_selector="app = olricd-server"'
+#  args: 'label_selector="app = olric-server"'

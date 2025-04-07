@@ -25,7 +25,7 @@ services:
     image: docker.io/olricio/olric-consul-plugin:v0.5.0-beta.2
     restart: on-failure
     volumes:
-      - ${PWD}/olricd-consul.yaml:/etc/olricd.yaml:ro
+      - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
     depends_on:
       - nginx
       - consul
@@ -41,16 +41,16 @@ services:
     image: docker.io/olricio/olric-dev:latest
     restart: on-failure
     environment:
-      - OLRICD_CONFIG=/etc/olricd-local.yaml
+      - OLRIC_SERVER_CONFIG=/etc/olric-server-local.yaml
       - CGO_ENABLED=1
     command: bash -c "
       cd /go/src/github.com/buraksezer/olric-consul-plugin &&
       go build -buildmode=plugin -o /usr/lib/olric-consul-plugin.so &&
       cd /go/src/github.com/buraksezer/olric &&
-      go build -v -o /go/bin/olricd /go/src/github.com/buraksezer/olric/cmd/olricd/main.go &&
-      /go/bin/olricd -c /go/src/github.com/buraksezer/olric/cmd/olricd/olricd-local.yaml"
+      go build -v -o /go/bin/olric-server /go/src/github.com/buraksezer/olric/cmd/olric-server/main.go &&
+      /go/bin/olric-server -c /go/src/github.com/buraksezer/olric/cmd/olric-server/olric-server-local.yaml"
     volumes:
-      - ${PWD}/olricd-consul.yaml:/etc/olricd.yaml:ro
+      - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
       - ../:/go/src/github.com/buraksezer/olric
       - ../../olric-consul-plugin:/go/src/github.com/buraksezer/olric-consul-plugin
     depends_on:

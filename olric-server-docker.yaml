@@ -1,4 +1,4 @@
-olricd:
+server:
   # BindAddr denotes the address that Olric will bind to for communication
   # with other Olric nodes.
   bindAddr: 0.0.0.0
@@ -271,4 +271,4 @@ dmaps:
 #serviceDiscovery:
 #  provider: "k8s"
 #  path: "/Users/buraksezer/go/src/github.com/buraksezer/olric-cloud-plugin/olric-cloud-plugin.so"
-#  args: 'label_selector="app = olricd-server"'
+#  args: 'label_selector="app = olric-server"'
