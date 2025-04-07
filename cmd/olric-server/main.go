@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Server implementation for Olric. Olricd basically manages configuration for you.
+// Server implementation for Olric. Olric Server basically manages configuration for you.
 
 package main
 
@@ -25,21 +25,21 @@ import (
 	"runtime"
 
 	"github.com/buraksezer/olric"
-	"github.com/buraksezer/olric/cmd/olricd/server"
+	"github.com/buraksezer/olric/cmd/olric-server/server"
 	"github.com/buraksezer/olric/config"
 	"github.com/sean-/seed"
 )
 
 func usage() {
-	var msg = `Usage: olricd [options] ...
+	var msg = `Usage: olric-server [options] ...
 
-Distributed cache and in-memory data structure server.
+Distributed key-value store and cache
 
 Options:
   -h, --help    Print this message and exit.
   -v, --version Print the version number and exit.
-  -c, --config  Sets configuration file path. Default is olricd-local.yaml in the
-                current folder. Set OLRICD_CONFIG to overwrite it.
+  -c, --config  Sets configuration file path. Default is olric-server-local.yaml in the
+                current folder. Set OLRIC_SERVER_CONFIG to overwrite it.
 
 The Go runtime version %s
 Report bugs to https://github.com/buraksezer/olric/issues
@@ -58,10 +58,10 @@ type arguments struct {
 
 const (
 	// DefaultConfigFile is the default configuration file path on a Unix-based operating system.
-	DefaultConfigFile = "olricd-local.yaml"
+	DefaultConfigFile = "olric-server-local.yaml"
 
 	// EnvConfigFile is the name of environment variable which can be used to override default configuration file path.
-	EnvConfigFile = "OLRICD_CONFIG"
+	EnvConfigFile = "OLRIC_SERVER_CONFIG"
 )
 
 func main() {
@@ -86,7 +86,7 @@ func main() {
 	}
 
 	if args.version {
-		_, _ = fmt.Fprintf(os.Stderr, "olricd version %s %s %s/%s\n",
+		_, _ = fmt.Fprintf(os.Stderr, "olric-server version %s %s %s/%s\n",
 			olric.ReleaseVersion,
 			runtime.Version(),
 			runtime.GOOS,

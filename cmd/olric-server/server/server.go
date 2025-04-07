@@ -27,28 +27,31 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Olricd represents a new Olricd instance.
-type Olricd struct {
+// OlricServer represents an instance of the Olric distributed in-memory data structure store.
+// It encapsulates logging, configuration, the Olric database instance, and an error group for
+// concurrency management.
+type OlricServer struct {
 	log    *log.Logger
 	config *config.Config
 	db     *olric.Olric
 	errGr  errgroup.Group
 }
 
-// New creates a new Server instance
-func New(c *config.Config) (*Olricd, error) {
+// New initializes a new OlricServer instance using the provided configuration and returns it or an error.
+func New(c *config.Config) (*OlricServer, error) {
 	db, err := olric.New(c)
 	if err != nil {
 		return nil, err
 	}
-	return &Olricd{
+	return &OlricServer{
 		config: c,
 		log:    c.Logger,
 		db:     db,
 	}, nil
 }
 
-func (s *Olricd) waitForInterrupt() {
+// waitForInterrupt waits for termination signals (SIGTERM, SIGINT) to gracefully shut down the Olric server instance.
+func (s *OlricServer) waitForInterrupt() {
 	shutDownChan := make(chan os.Signal, 1)
 	signal.Notify(shutDownChan, syscall.SIGTERM, syscall.SIGINT)
 	ch := <-shutDownChan
@@ -82,8 +85,8 @@ func (s *Olricd) waitForInterrupt() {
 	}()
 }
 
-// Start starts a new olricd server instance and blocks until the server is closed.
-func (s *Olricd) Start() error {
+// Start launches the Olric server instance and begins listening for incoming requests and termination signals.
+func (s *OlricServer) Start() error {
 	s.log.Printf("[INFO] pid: %d has been started", os.Getpid())
 	// Wait for SIGTERM or SIGINT
 	go s.waitForInterrupt()
@@ -95,7 +98,7 @@ func (s *Olricd) Start() error {
 	return s.errGr.Wait()
 }
 
-// Shutdown stops background servers and leaves the cluster.
-func (s *Olricd) Shutdown(ctx context.Context) error {
+// Shutdown gracefully stops the Olric server instance, releasing resources and ensuring a clean termination.
+func (s *OlricServer) Shutdown(ctx context.Context) error {
 	return s.db.Shutdown(ctx)
 }
