@@ -23,14 +23,14 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.5.7](https://github.com/olric-data/olric/tree/release/v0.5.0#olric-)
+The current production version is [v0.6.0](https://github.com/olric-data/olric/tree/release/v0.5.0#olric-)
 
-### About versions
+### About renaming the module
 
-Olric v0.4 and previous versions use *Olric Binary Protocol*, v0.5.x and later use [Redis serialization protocol](https://redis.io/docs/reference/protocol-spec/) for communication and the API was significantly changed.
-Olric v0.4.x tree is going to receive bug fixes and security updates forever, but I would recommend considering an upgrade to the new version.
+`github.com/buraksezer/olric` module has been renamed to `github.com/olric-data/olric`. This change has been effective since **v0.6.0**.
+Importing previous versions should redirect you to the new repository, but you should change the import paths in your codebase as soon as possible.
 
-This document only covers `v0.5.x` and later. See v0.4.x documents [here](https://github.com/olric-data/olric/tree/release/v0.4.0#olric-).
+There is no other difference between v0.5.7 and v0.6.0.
 
 ## At a glance
 
