@@ -17,9 +17,9 @@ package dmap
 import (
 	"errors"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/protocol"
 	"github.com/tidwall/redcon"
 )
 

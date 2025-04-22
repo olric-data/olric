@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/hasher"
-	"github.com/buraksezer/olric/internal/testutil"
-	"github.com/buraksezer/olric/stats"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/hasher"
+	"github.com/olric-data/olric/internal/testutil"
+	"github.com/olric-data/olric/stats"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )

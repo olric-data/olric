@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/buraksezer/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/cluster/partitions"
 )
 
 type env struct {

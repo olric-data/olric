@@ -15,7 +15,7 @@
 package routingtable
 
 import (
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 )
 
 func (r *RoutingTable) RegisterHandlers() {

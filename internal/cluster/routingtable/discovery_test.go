@@ -17,7 +17,7 @@ package routingtable
 import (
 	"context"
 	"errors"
-	"github.com/buraksezer/olric/internal/testutil"
+	"github.com/olric-data/olric/internal/testutil"
 	"testing"
 	"time"
 )

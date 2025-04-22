@@ -17,7 +17,7 @@ package partitions
 import (
 	"testing"
 
-	"github.com/buraksezer/olric/hasher"
+	"github.com/olric-data/olric/hasher"
 	"github.com/stretchr/testify/require"
 )
 

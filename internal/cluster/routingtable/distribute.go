@@ -17,8 +17,8 @@ package routingtable
 import (
 	"errors"
 	"github.com/buraksezer/consistent"
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/protocol"
 )
 
 func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member {

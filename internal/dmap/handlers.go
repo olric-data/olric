@@ -15,7 +15,7 @@
 package dmap
 
 import (
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 )
 
 func (s *Service) RegisterHandlers() {

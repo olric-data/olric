@@ -17,8 +17,8 @@ package olric
 import (
 	"sync"
 
-	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/dmap"
+	"github.com/olric-data/olric/internal/protocol"
 )
 
 // EmbeddedIterator implements distributed query on DMaps.

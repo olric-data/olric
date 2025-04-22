@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/resp"
-	"github.com/buraksezer/olric/internal/testcluster"
+	"github.com/olric-data/olric/internal/dmap"
+	"github.com/olric-data/olric/internal/resp"
+	"github.com/olric-data/olric/internal/testcluster"
 	"github.com/stretchr/testify/require"
 )
 

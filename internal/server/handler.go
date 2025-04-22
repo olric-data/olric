@@ -17,8 +17,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/util"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/util"
 	"github.com/tidwall/redcon"
 )
 

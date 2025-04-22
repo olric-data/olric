@@ -15,11 +15,11 @@
 package routingtable
 
 import (
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 	"runtime"
 	"sync"
 
-	"github.com/buraksezer/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/discovery"
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"

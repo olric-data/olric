@@ -16,9 +16,9 @@ package dmap
 
 import (
 	"context"
-	"github.com/buraksezer/olric/internal/cluster/routingtable"
-	"github.com/buraksezer/olric/internal/testcluster"
-	"github.com/buraksezer/olric/internal/testutil"
+	"github.com/olric-data/olric/internal/cluster/routingtable"
+	"github.com/olric-data/olric/internal/testcluster"
+	"github.com/olric-data/olric/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

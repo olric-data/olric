@@ -18,13 +18,13 @@ import (
 	"context"
 	"sync"
 
-	"github.com/buraksezer/olric/internal/cluster/routingtable"
-	"github.com/buraksezer/olric/internal/environment"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/server"
-	"github.com/buraksezer/olric/internal/service"
-	"github.com/buraksezer/olric/internal/stats"
-	"github.com/buraksezer/olric/pkg/flog"
+	"github.com/olric-data/olric/internal/cluster/routingtable"
+	"github.com/olric-data/olric/internal/environment"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/server"
+	"github.com/olric-data/olric/internal/service"
+	"github.com/olric-data/olric/internal/stats"
+	"github.com/olric-data/olric/pkg/flog"
 )
 
 var (

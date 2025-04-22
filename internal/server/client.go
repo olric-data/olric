@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/roundrobin"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/roundrobin"
 	"github.com/redis/go-redis/v9"
 )
 

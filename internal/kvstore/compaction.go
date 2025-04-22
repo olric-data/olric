@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/buraksezer/olric/internal/kvstore/table"
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/pkg/storage"
 )
 
 func (k *KVStore) evictTable(t *table.Table) error {

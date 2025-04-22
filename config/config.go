@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/buraksezer/olric/hasher"
 	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/hasher"
 )
 
 // IConfig is an interface that has to be implemented by Config and its nested

@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/pkg/flog"
+	"github.com/olric-data/olric/pkg/flog"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/redcon"

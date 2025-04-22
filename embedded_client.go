@@ -20,11 +20,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/util"
-	"github.com/buraksezer/olric/stats"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/dmap"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/util"
+	"github.com/olric-data/olric/stats"
 )
 
 // EmbeddedLockContext is returned by Lock and LockWithTimeout methods.

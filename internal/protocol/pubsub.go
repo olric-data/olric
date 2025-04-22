@@ -17,7 +17,7 @@ package protocol
 import (
 	"context"
 
-	"github.com/buraksezer/olric/internal/util"
+	"github.com/olric-data/olric/internal/util"
 	"github.com/redis/go-redis/v9"
 	"github.com/tidwall/redcon"
 )

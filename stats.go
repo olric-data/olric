@@ -20,13 +20,13 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/pubsub"
-	"github.com/buraksezer/olric/internal/server"
-	"github.com/buraksezer/olric/stats"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/dmap"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/pubsub"
+	"github.com/olric-data/olric/internal/server"
+	"github.com/olric-data/olric/stats"
 	"github.com/tidwall/redcon"
 )
 

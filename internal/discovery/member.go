@@ -18,8 +18,8 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/buraksezer/olric/config"
 	"github.com/cespare/xxhash/v2"
+	"github.com/olric-data/olric/config"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

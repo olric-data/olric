@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 	"github.com/tidwall/redcon"
 )
 

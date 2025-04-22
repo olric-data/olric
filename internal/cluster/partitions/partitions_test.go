@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/buraksezer/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/discovery"
 )
 
 func TestPartitions(t *testing.T) {

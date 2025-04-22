@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/buraksezer/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/cluster/partitions"
 	"golang.org/x/sync/semaphore"
 )
 

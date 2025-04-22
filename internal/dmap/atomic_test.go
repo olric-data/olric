@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/resp"
-	"github.com/buraksezer/olric/internal/testcluster"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/resp"
+	"github.com/olric-data/olric/internal/testcluster"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

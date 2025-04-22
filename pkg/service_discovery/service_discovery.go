@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /*Package service_discovery provides ServiceDiscovery interface for plugins*/
-package service_discovery // import "github.com/buraksezer/olric/pkg/service_discovery"
+package service_discovery // import "github.com/olric-data/olric/pkg/service_discovery"
 
 import "log"
 

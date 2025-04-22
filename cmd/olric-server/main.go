@@ -24,9 +24,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/buraksezer/olric"
-	"github.com/buraksezer/olric/cmd/olric-server/server"
-	"github.com/buraksezer/olric/config"
+	"github.com/olric-data/olric"
+	"github.com/olric-data/olric/cmd/olric-server/server"
+	"github.com/olric-data/olric/config"
 	"github.com/sean-/seed"
 )
 
@@ -42,7 +42,7 @@ Options:
                 current folder. Set OLRIC_SERVER_CONFIG to overwrite it.
 
 The Go runtime version %s
-Report bugs to https://github.com/buraksezer/olric/issues
+Report bugs to https://github.com/olric-data/olric/issues
 `
 	_, err := fmt.Fprintf(os.Stdout, msg, runtime.Version())
 	if err != nil {

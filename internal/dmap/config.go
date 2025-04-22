@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/buraksezer/olric/config"
+	"github.com/olric-data/olric/config"
 )
 
 // dmapConfig keeps DMap config control parameters and access-log for keys in a dmap.

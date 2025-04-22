@@ -17,7 +17,7 @@ package entry
 import (
 	"encoding/binary"
 
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/pkg/storage"
 )
 
 // In-memory layout for an entry:

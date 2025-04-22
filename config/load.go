@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/buraksezer/olric/config/internal/loader"
-	"github.com/buraksezer/olric/hasher"
 	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/config/internal/loader"
+	"github.com/olric-data/olric/hasher"
 	"github.com/pkg/errors"
 )
 

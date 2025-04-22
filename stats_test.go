@@ -20,11 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/dmap"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/pubsub"
-	"github.com/buraksezer/olric/internal/testutil"
-	"github.com/buraksezer/olric/stats"
+	"github.com/olric-data/olric/internal/dmap"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/pubsub"
+	"github.com/olric-data/olric/internal/testutil"
+	"github.com/olric-data/olric/stats"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 )

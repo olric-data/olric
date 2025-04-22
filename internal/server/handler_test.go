@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/redcon"

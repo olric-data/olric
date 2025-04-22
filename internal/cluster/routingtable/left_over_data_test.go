@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/testutil"
-	"github.com/buraksezer/olric/internal/testutil/mockfragment"
+	"github.com/olric-data/olric/internal/testutil"
+	"github.com/olric-data/olric/internal/testutil/mockfragment"
 	"github.com/stretchr/testify/require"
 )
 

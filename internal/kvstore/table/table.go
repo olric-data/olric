@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/buraksezer/olric/internal/kvstore/entry"
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/internal/kvstore/entry"
+	"github.com/olric-data/olric/pkg/storage"
 	"github.com/pkg/errors"
 )
 

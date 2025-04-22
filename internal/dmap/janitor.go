@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/buraksezer/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/cluster/partitions"
 )
 
 func wipeOutFragment(part *partitions.Partition, name string, f *fragment) error {

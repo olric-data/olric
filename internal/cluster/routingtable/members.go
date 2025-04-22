@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/buraksezer/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/discovery"
 )
 
 type Members struct {

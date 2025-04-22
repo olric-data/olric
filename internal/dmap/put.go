@@ -20,14 +20,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/bufpool"
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/resp"
-	"github.com/buraksezer/olric/internal/stats"
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/bufpool"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/resp"
+	"github.com/olric-data/olric/internal/stats"
+	"github.com/olric-data/olric/pkg/storage"
 	"github.com/redis/go-redis/v9"
 )
 

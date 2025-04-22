@@ -26,11 +26,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/stats"
-	"github.com/buraksezer/olric/pkg/flog"
-	"github.com/buraksezer/olric/pkg/service_discovery"
 	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/stats"
+	"github.com/olric-data/olric/pkg/flog"
+	"github.com/olric-data/olric/pkg/service_discovery"
 )
 
 const eventChanCapacity = 256

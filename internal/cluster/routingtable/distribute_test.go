@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/testutil"
+	"github.com/olric-data/olric/internal/testutil"
 )
 
 func TestRoutingTable_distributedBackups(t *testing.T) {

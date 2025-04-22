@@ -23,14 +23,14 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.5.7](https://github.com/buraksezer/olric/tree/release/v0.5.0#olric-)
+The current production version is [v0.5.7](https://github.com/olric-data/olric/tree/release/v0.5.0#olric-)
 
 ### About versions
 
 Olric v0.4 and previous versions use *Olric Binary Protocol*, v0.5.x and later use [Redis serialization protocol](https://redis.io/docs/reference/protocol-spec/) for communication and the API was significantly changed.
 Olric v0.4.x tree is going to receive bug fixes and security updates forever, but I would recommend considering an upgrade to the new version.
 
-This document only covers `v0.5.x` and later. See v0.4.x documents [here](https://github.com/buraksezer/olric/tree/release/v0.4.0#olric-).
+This document only covers `v0.5.x` and later. See v0.4.x documents [here](https://github.com/olric-data/olric/tree/release/v0.4.0#olric-).
 
 ## At a glance
 
@@ -164,7 +164,7 @@ See [Architecture](#architecture) section to see details.
 
 We have a few communication channels: 
 
-* [Issue Tracker](https://github.com/buraksezer/olric/issues)
+* [Issue Tracker](https://github.com/olric-data/olric/issues)
 * [Discord server](https://discord.gg/ahK7Vjr8We)
 
 You should know that the issue tracker is only intended for bug reports and feature requests.
@@ -176,7 +176,7 @@ Software doesn't maintain itself. If you need support on complex topics or reque
 With a correctly configured Golang environment:
 
 ```
-go install github.com/buraksezer/olric/cmd/olric-server@v0.5.7
+go install github.com/olric-data/olric/cmd/olric-server@v0.5.7
 ```
 
 Now you can start using Olric:
@@ -214,7 +214,7 @@ OK
 With olric-server, you can create an Olric cluster with a few commands. This is how to install olric-server:
 
 ```bash
-go install github.com/buraksezer/olric/cmd/olric-server@v0.5.7
+go install github.com/olric-data/olric/cmd/olric-server@v0.5.7
 ```
 
 Let's create a cluster with the following:
@@ -917,13 +917,13 @@ You should feel free to ask any questions about configuration and integration. P
 Olric provides a function to generate default configuration to use in embedded-member mode:
 
 ```go
-import "github.com/buraksezer/olric/config"
+import "github.com/olric-data/olric/config"
 ...
 c := config.New("local")
 ```
 
 The `New` function takes a parameter called `env`. It denotes the network environment and consumed by [hashicorp/memberlist](https://github.com/hashicorp/memberlist). 
-Default configuration is good enough for distributed caching scenario. In order to see all configuration parameters, please take a look at [this](https://godoc.org/github.com/buraksezer/olric/config).
+Default configuration is good enough for distributed caching scenario. In order to see all configuration parameters, please take a look at [this](https://godoc.org/github.com/olric-data/olric/config).
 
 See [Sample Code](#sample-code) section for an introduction.
 
@@ -935,13 +935,13 @@ You can also import configuration from a YAML file by using the `Load` function:
 c, err := config.Load(path/to/olric.yaml)
 ```
 
-A sample configuration file in YAML format can be found [here](https://github.com/buraksezer/olric/blob/master/cmd/olric-server/olric-server.yaml). This may be the most appropriate way to manage the Olric configuration.
+A sample configuration file in YAML format can be found [here](https://github.com/olric-data/olric/blob/master/cmd/olric-server/olric-server.yaml). This may be the most appropriate way to manage the Olric configuration.
 
 
 ### Client-Server Mode
 
 Olric provides **olric-server** to implement client-server mode. olric-server gets a YAML file for the configuration. The most basic  functionality of olric-server is that 
-translating YAML configuration into Olric's configuration struct. A sample `olric-server.yaml` file  is being provided [here](https://github.com/buraksezer/olric/blob/master/cmd/olric-server/olric-server.yaml).
+translating YAML configuration into Olric's configuration struct. A sample `olric-server.yaml` file  is being provided [here](https://github.com/olric-data/olric/blob/master/cmd/olric-server/olric-server.yaml).
 
 ### Network Configuration
 
@@ -1192,7 +1192,7 @@ dmaps:
     evictionPolicy: "NONE" # NONE/LRU
 ```
 
-If you prefer embedded-member deployment scenario, please take a look at [config#CacheConfig](https://godoc.org/github.com/buraksezer/olric/config#CacheConfig) and [config#DMapCacheConfig](https://godoc.org/github.com/buraksezer/olric/config#DMapCacheConfig) for the configuration.
+If you prefer embedded-member deployment scenario, please take a look at [config#CacheConfig](https://godoc.org/github.com/olric-data/olric/config#CacheConfig) and [config#DMapCacheConfig](https://godoc.org/github.com/olric-data/olric/config#DMapCacheConfig) for the configuration.
 
 
 ### Lock Implementation
@@ -1257,7 +1257,7 @@ import (
   "time"
 
   "github.com/buraksezer/olric"
-  "github.com/buraksezer/olric/config"
+  "github.com/olric-data/olric/config"
 )
 
 func main() {
@@ -1350,7 +1350,7 @@ import (
   "time"
 
   "github.com/buraksezer/olric"
-  "github.com/buraksezer/olric/config"
+  "github.com/olric-data/olric/config"
 )
 
 func main() {
@@ -1511,7 +1511,7 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric"
-	"github.com/buraksezer/olric/config"
+	"github.com/olric-data/olric/config"
 )
 
 func main() {

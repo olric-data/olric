@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/internal/kvstore/entry"
 	"github.com/cespare/xxhash/v2"
+	"github.com/olric-data/olric/internal/kvstore/entry"
 	"github.com/stretchr/testify/require"
 )
 

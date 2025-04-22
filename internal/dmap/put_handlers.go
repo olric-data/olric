@@ -17,8 +17,8 @@ package dmap
 import (
 	"time"
 
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/protocol"
 	"github.com/tidwall/redcon"
 )
 

@@ -18,8 +18,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/pkg/storage"
 	"github.com/stretchr/testify/require"
 )
 

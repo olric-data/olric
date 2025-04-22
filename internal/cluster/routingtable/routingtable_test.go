@@ -23,13 +23,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/environment"
-	"github.com/buraksezer/olric/internal/server"
-	"github.com/buraksezer/olric/internal/testutil"
 	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/environment"
+	"github.com/olric-data/olric/internal/server"
+	"github.com/olric-data/olric/internal/testutil"
 	"golang.org/x/sync/errgroup"
 )
 

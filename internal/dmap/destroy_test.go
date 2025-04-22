@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/internal/testcluster"
-	"github.com/buraksezer/olric/internal/testutil"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/testcluster"
+	"github.com/olric-data/olric/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 

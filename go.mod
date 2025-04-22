@@ -1,4 +1,4 @@
-module github.com/buraksezer/olric
+module github.com/olric-data/olric
 
 go 1.23.0
 

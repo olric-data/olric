@@ -15,8 +15,8 @@
 package routingtable
 
 import (
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/discovery"
 )
 
 func (r *RoutingTable) processLeftOverDataReports(reports map[discovery.Member]*leftOverDataReport) {

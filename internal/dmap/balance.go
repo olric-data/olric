@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/buraksezer/olric/events"
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/protocol"
-	"github.com/buraksezer/olric/pkg/neterrors"
-	"github.com/buraksezer/olric/pkg/storage"
+	"github.com/olric-data/olric/events"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/pkg/neterrors"
+	"github.com/olric-data/olric/pkg/storage"
 	"github.com/tidwall/redcon"
 	"github.com/vmihailenco/msgpack/v5"
 )

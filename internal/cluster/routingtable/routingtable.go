@@ -21,18 +21,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/buraksezer/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/protocol"
 
 	"github.com/buraksezer/consistent"
-	"github.com/buraksezer/olric/config"
-	"github.com/buraksezer/olric/internal/checkpoint"
-	"github.com/buraksezer/olric/internal/cluster/partitions"
-	"github.com/buraksezer/olric/internal/discovery"
-	"github.com/buraksezer/olric/internal/environment"
-	"github.com/buraksezer/olric/internal/server"
-	"github.com/buraksezer/olric/internal/service"
-	"github.com/buraksezer/olric/pkg/flog"
 	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/config"
+	"github.com/olric-data/olric/internal/checkpoint"
+	"github.com/olric-data/olric/internal/cluster/partitions"
+	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/environment"
+	"github.com/olric-data/olric/internal/server"
+	"github.com/olric-data/olric/internal/service"
+	"github.com/olric-data/olric/pkg/flog"
 )
 
 // ErrClusterQuorum means that the cluster could not reach a healthy numbers of members to operate.
