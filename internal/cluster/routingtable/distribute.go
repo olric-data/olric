@@ -16,6 +16,7 @@ package routingtable
 
 import (
 	"errors"
+
 	"github.com/buraksezer/consistent"
 	"github.com/olric-data/olric/internal/discovery"
 	"github.com/olric-data/olric/internal/protocol"

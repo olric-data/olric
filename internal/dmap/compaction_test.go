@@ -17,10 +17,11 @@ package dmap
 import (
 	"context"
 	"fmt"
-	"github.com/olric-data/olric/internal/kvstore"
-	"github.com/olric-data/olric/pkg/storage"
 	"testing"
 	"time"
+
+	"github.com/olric-data/olric/internal/kvstore"
+	"github.com/olric-data/olric/pkg/storage"
 
 	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/internal/testcluster"

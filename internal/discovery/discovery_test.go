@@ -16,14 +16,15 @@ package discovery
 
 import (
 	"fmt"
-	"github.com/hashicorp/memberlist"
-	"github.com/olric-data/olric/pkg/service_discovery"
 	"log"
 	"net"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/memberlist"
+	"github.com/olric-data/olric/pkg/service_discovery"
 
 	"github.com/olric-data/olric/internal/testutil"
 	"github.com/stretchr/testify/require"

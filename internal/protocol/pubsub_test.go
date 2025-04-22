@@ -2,8 +2,9 @@ package protocol
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestProtocol_ParsePublishCommand(t *testing.T) {

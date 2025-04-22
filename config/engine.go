@@ -16,6 +16,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/olric-data/olric/internal/kvstore"
 	"github.com/olric-data/olric/pkg/storage"
 )

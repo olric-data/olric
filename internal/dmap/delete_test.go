@@ -18,17 +18,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/olric-data/olric/internal/kvstore"
-	"github.com/olric-data/olric/pkg/storage"
 	"testing"
 	"time"
 
 	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/internal/cluster/partitions"
 	"github.com/olric-data/olric/internal/discovery"
+	"github.com/olric-data/olric/internal/kvstore"
 	"github.com/olric-data/olric/internal/protocol"
 	"github.com/olric-data/olric/internal/testcluster"
 	"github.com/olric-data/olric/internal/testutil"
+	"github.com/olric-data/olric/pkg/storage"
 	"github.com/stretchr/testify/require"
 )
 

@@ -15,8 +15,9 @@
 package dmap
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/olric-data/olric/internal/testcluster"
 )
