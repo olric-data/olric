@@ -1,4 +1,4 @@
-# cd $GOPATH/src/github.com/buraksezer/olric
+# cd $GOPATH/src/github.com/olric-data/olric/
 # docker build -f docker/Dockerfile -t olricio/olric-dev .
 # docker push olricio/olric-dev:latest
 

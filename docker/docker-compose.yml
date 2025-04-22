@@ -46,12 +46,12 @@ services:
     command: bash -c "
       cd /go/src/github.com/buraksezer/olric-consul-plugin &&
       go build -buildmode=plugin -o /usr/lib/olric-consul-plugin.so &&
-      cd /go/src/github.com/buraksezer/olric &&
+      cd /go/src/github.com/olric-data/olric &&
       go build -v -o /go/bin/olric-server /go/src/github.com/olric-data/olric/cmd/olric-server/main.go &&
       /go/bin/olric-server -c /go/src/github.com/olric-data/olric/cmd/olric-server/olric-server-local.yaml"
     volumes:
       - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
-      - ../:/go/src/github.com/buraksezer/olric
+      - ../:/go/src/github.com/olric-data/olric
       - ../../olric-consul-plugin:/go/src/github.com/buraksezer/olric-consul-plugin
     depends_on:
       - nginx-dev
