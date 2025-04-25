@@ -17,26 +17,27 @@ package service_discovery // import "github.com/olric-data/olric/pkg/service_dis
 
 import "log"
 
-// ServiceDiscovery is an interface that defines a unified API for service discovery plugins.
+// ServiceDiscovery represents an interface for discovering, registering nodes within an Olric cluster.
 type ServiceDiscovery interface {
-	// Initialize initializes the plugin: registers some internal data structures, clients etc.
+
+	// Initialize prepares the service discovery plugin for use and ensures it is ready for further operations.
 	Initialize() error
 
-	// SetConfig registers plugin configuration
+	// SetConfig sets the configuration for the service discovery plugin using the provided map of settings.
 	SetConfig(c map[string]interface{}) error
 
-	// SetLogger sets an appropriate
+	// SetLogger assigns a custom logger to the service discovery instance for logging operations.
 	SetLogger(l *log.Logger)
 
-	// Register registers this node to a service discovery directory.
+	// Register registers the current node in the service discovery directory, enabling it to participate in the cluster.
 	Register() error
 
-	// Deregister removes this node from a service discovery directory.
+	// Deregister removes the current node from the service discovery directory and stops its participation in the cluster.
 	Deregister() error
 
-	// DiscoverPeers returns a list of known Olric nodes.
+	// DiscoverPeers retrieves a list of available peers in the cluster and returns their addresses or an error if any occurs.
 	DiscoverPeers() ([]string, error)
 
-	// Close stops underlying goroutines, if there is any. It should be a blocking call.
+	// Close gracefully terminates all operations and releases resources associated with the service discovery instance.
 	Close() error
 }
