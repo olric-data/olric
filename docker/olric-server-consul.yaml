@@ -154,7 +154,7 @@ logging:
   verbosity: 3
 
   # Default LogLevel is DEBUG. Available levels: "DEBUG", "WARN", "ERROR", "INFO"
-  level: INFO
+  level: WARN
   output: stderr
 
 memberlist:
