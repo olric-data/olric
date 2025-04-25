@@ -32,55 +32,60 @@ olric_1      | 2020/08/12 15:53:18 [DEBUG] memberlist: Stream connection from=17
 olric_1      | 2020/08/12 15:53:19 [ERROR] Join attempt returned error: no peers found => olric.go:2
 ```
 
-You can modify `olric-consul.yaml` file to try different configuration options. 
+You can modify `olric-server-consul.yaml` file to try different configuration options. 
 
 If Consul service works without any problem, you can visit [http://localhost:8500](http://localhost:8500) to monitor 
 cluster health.
 
 ### Accessing to the cluster
 
-`nginx` service exposes port `3320` to access the cluster. 
+`nginx` service exposes port `3320` to access the cluster. You can list the cluster members with `CLUSTER.MEMBERS` command.
 
 ```
-$ olric-stats -a localhost:3320 -m
-This member: 172.18.0.4:3320
- ID: 6755975864422107140
- Birthdate: 1627807789014433806
-
-Cluster coordinator: 172.18.0.5:3320
- ID: 17571271894830874512
- Birthdate: 1627807787904657773
-
-All members:
-
-Member: 172.18.0.6:3320
- ID: 1896808979412278355
- Birthdate: 1627807788577374417
-
-Member: 172.18.0.5:3320
- ID: 17571271894830874512
- Birthdate: 1627807787904657773
-
-Member: 172.18.0.4:3320
- ID: 6755975864422107140
- Birthdate: 1627807789014433806
+$ redis-cli -p 3320
+127.0.0.1:3320> CLUSTER.MEMBERS
+ 1) 1) "172.18.0.9:3320"
+    2) (integer) 1745597203895069302
+    3) "true"
+ 2) 1) "172.18.0.10:3320"
+    2) (integer) 1745597204061500052
+    3) "false"
+ 3) 1) "172.18.0.11:3320"
+    2) (integer) 1745597204182767469
+    3) "false"
+ 4) 1) "172.18.0.3:3320"
+    2) (integer) 1745597204275319219
+    3) "false"
+ 5) 1) "172.18.0.6:3320"
+    2) (integer) 1745597204337977552
+    3) "false"
+ 6) 1) "172.18.0.4:3320"
+    2) (integer) 1745597204369791844
+    3) "false"
+ 7) 1) "172.18.0.12:3320"
+    2) (integer) 1745597204385693552
+    3) "false"
+ 8) 1) "172.18.0.7:3320"
+    2) (integer) 1745597204523284927
+    3) "false"
+ 9) 1) "172.18.0.13:3320"
+    2) (integer) 1745597204665281636
+    3) "false"
+10) 1) "172.18.0.8:3320"
+    2) (integer) 1745597208386416971
+    3) "false"
 ```
 
-Insert some keys:
+Let's taste the DMap:
 
 ```
-olric-benchmark -a 127.0.0.1:3320 -T put -r 1000 -s msgpack
+$ redis-cli -p 3320
+127.0.0.1:3320> DM.PUT test my-key my-value
+OK
+127.0.0.1:3320> DM.GET test my-key
+"my-value"
+127.0.0.1:3320>
 ```
-
-### Develop & Test with Docker Compose
-
-In order to test your local changes in a containerized environment, just run the following command:
-
-```
-docker-compose up olric-dev
-```
-
-`olric-dev` container includes Delve debugger.
 
 ## Service discovery
 
@@ -90,11 +95,11 @@ Olric provides a service discovery subsystem via a plugin interface. We currentl
 * [olric-nats-plugin](https://github.com/justinfx/olric-nats-plugin): Nats-backed service discovery,
 * [olric-cloud-plugin](https://github.com/olric-data/olric-cloud-plugin): Service discovery plugin for cloud environments (AWS, GKE, Azure and Kubernetes)
 
-We use Consul plugin in this document:
+We use the Consul plugin in this document:
 
 ### Consul 
 
-Consul is easy to use and proven way to discover nodes in a clustered environment. Olric discover the other nodes via 
+Consul is easy to use and a proven way to discover nodes in a clustered environment. Olric discover the other nodes via 
 [olric-consul-plugin](https://github.com/olric-data/olric-consul-plugin). Here is a simple payload for this setup:
 
 ```json
@@ -118,4 +123,4 @@ Consul is easy to use and proven way to discover nodes in a clustered environmen
 Consul dials this port to control the node. `Address`, `ID` and `Check.TCP` fields is being filled by the plugin. You can still 
 give your own configuration values, if you know what you are doing.
 
-Please check out `olric-consul.yaml` to see how to create an Olric cluster with Consul.
+Please check out `olric-server-consul.yaml` to see how to create an Olric cluster with Consul.

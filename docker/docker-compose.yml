@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   nginx:
     image: nginx:latest
@@ -10,7 +8,8 @@ services:
       - '3320:3320'
 
   consul:
-    image: docker.io/bitnami/consul:1.11.4
+    platform: linux/amd64
+    image: public.ecr.aws/bitnami/consul:latest
     volumes:
       - consul_data:/bitnami/consul
     ports:
@@ -22,39 +21,13 @@ services:
       - '8600:8600/udp'
 
   olric:
-    image: docker.io/olricio/olric-consul-plugin:v0.5.0-beta.2
+    platform: linux/amd64
+    image: ghcr.io/olric-data/olric-consul-plugin:latest
     restart: on-failure
     volumes:
       - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
     depends_on:
       - nginx
-      - consul
-
-  nginx-dev:
-    image: nginx:latest
-    volumes:
-      - ${PWD}/nginx-dev.conf:/etc/nginx/nginx-dev.conf:ro
-    ports:
-      - '3320:3320'
-
-  olric-dev:
-    image: docker.io/olricio/olric-dev:latest
-    restart: on-failure
-    environment:
-      - OLRIC_SERVER_CONFIG=/etc/olric-server-local.yaml
-      - CGO_ENABLED=1
-    command: bash -c "
-      cd /go/src/github.com/olric-data/olric-consul-plugin &&
-      go build -buildmode=plugin -o /usr/lib/olric-consul-plugin.so &&
-      cd /go/src/github.com/olric-data/olric &&
-      go build -v -o /go/bin/olric-server /go/src/github.com/olric-data/olric/cmd/olric-server/main.go &&
-      /go/bin/olric-server -c /go/src/github.com/olric-data/olric/cmd/olric-server/olric-server-local.yaml"
-    volumes:
-      - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
-      - ../:/go/src/github.com/olric-data/olric
-      - ../../olric-consul-plugin:/go/src/github.com/olric-data/olric-consul-plugin
-    depends_on:
-      - nginx-dev
       - consul
 
 volumes:

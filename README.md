@@ -23,7 +23,7 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.6.0](https://github.com/olric-data/olric/tree/release/v0.5.0#olric-)
+The current production version is [v0.6.1](https://github.com/olric-data/olric/tree/release/v0.6)
 
 ### About renaming the module
 
