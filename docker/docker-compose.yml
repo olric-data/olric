@@ -44,7 +44,7 @@ services:
       - OLRIC_SERVER_CONFIG=/etc/olric-server-local.yaml
       - CGO_ENABLED=1
     command: bash -c "
-      cd /go/src/github.com/buraksezer/olric-consul-plugin &&
+      cd /go/src/github.com/olric-data/olric-consul-plugin &&
       go build -buildmode=plugin -o /usr/lib/olric-consul-plugin.so &&
       cd /go/src/github.com/olric-data/olric &&
       go build -v -o /go/bin/olric-server /go/src/github.com/olric-data/olric/cmd/olric-server/main.go &&
@@ -52,7 +52,7 @@ services:
     volumes:
       - ${PWD}/olric-server-consul.yaml:/etc/olric-server.yaml:ro
       - ../:/go/src/github.com/olric-data/olric
-      - ../../olric-consul-plugin:/go/src/github.com/buraksezer/olric-consul-plugin
+      - ../../olric-consul-plugin:/go/src/github.com/olric-data/olric-consul-plugin
     depends_on:
       - nginx-dev
       - consul

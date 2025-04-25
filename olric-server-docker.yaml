@@ -221,7 +221,7 @@ dmaps:
 
 #serviceDiscovery:
 #  # path is a required property and used by Olric. It has to be a full path.
-#  path: "/home/burak/go/src/github.com/buraksezer/olric-consul-plugin/consul.so"
+#  path: "/home/burak/go/src/github.com/olric-data/olric-consul-plugin/consul.so"
 #
 #  # provider is just informal,
 #  provider: "consul"
@@ -270,5 +270,5 @@ dmaps:
 #
 #serviceDiscovery:
 #  provider: "k8s"
-#  path: "/Users/buraksezer/go/src/github.com/buraksezer/olric-cloud-plugin/olric-cloud-plugin.so"
+#  path: "/Users/buraksezer/go/src/github.com/olric-data/olric-cloud-plugin/olric-cloud-plugin.so"
 #  args: 'label_selector="app = olric-server"'

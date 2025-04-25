@@ -86,16 +86,16 @@ docker-compose up olric-dev
 
 Olric provides a service discovery subsystem via a plugin interface. We currently have three service discovery plugins:
 
-* [olric-consul-plugin](https://github.com/buraksezer/olric-consul-plugin): Consul-backed service discovery, 
+* [olric-consul-plugin](https://github.com/olric-data/olric-consul-plugin): Consul-backed service discovery, 
 * [olric-nats-plugin](https://github.com/justinfx/olric-nats-plugin): Nats-backed service discovery,
-* [olric-cloud-plugin](https://github.com/buraksezer/olric-cloud-plugin): Service discovery plugin for cloud environments (AWS, GKE, Azure and Kubernetes)
+* [olric-cloud-plugin](https://github.com/olric-data/olric-cloud-plugin): Service discovery plugin for cloud environments (AWS, GKE, Azure and Kubernetes)
 
 We use Consul plugin in this document:
 
 ### Consul 
 
 Consul is easy to use and proven way to discover nodes in a clustered environment. Olric discover the other nodes via 
-[olric-consul-plugin](https://github.com/buraksezer/olric-consul-plugin). Here is a simple payload for this setup:
+[olric-consul-plugin](https://github.com/olric-data/olric-consul-plugin). Here is a simple payload for this setup:
 
 ```json
 {

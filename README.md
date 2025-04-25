@@ -964,8 +964,8 @@ Olric provides a service discovery interface which can be used to implement plug
 
 We currently have a bunch of service discovery plugins for automatic peer discovery on cloud environments:
 
-* [buraksezer/olric-consul-plugin](https://github.com/buraksezer/olric-consul-plugin) provides a plugin using Consul.
-* [buraksezer/olric-cloud-plugin](https://github.com/buraksezer/olric-cloud-plugin) provides a plugin for well-known cloud providers. Including Kubernetes.
+* [olric-data/olric-consul-plugin](https://github.com/olric-data/olric-consul-plugin) provides a plugin using Consul.
+* [olric-data/olric-cloud-plugin](https://github.com/olric-data/olric-cloud-plugin) provides a plugin for well-known cloud providers. Including Kubernetes.
 * [justinfx/olric-nats-plugin](https://github.com/justinfx/olric-nats-plugin) provides a plugin using nats.io
 
 In order to get more info about installation and configuration of the plugins, see their GitHub page. 
