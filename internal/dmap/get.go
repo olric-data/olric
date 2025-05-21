@@ -230,13 +230,13 @@ func (dm *DMap) lookupOnReplicas(hkey uint64, key string) []*version {
 }
 
 func (dm *DMap) readRepair(winner *version, versions []*version) {
-	for _, version := range versions {
-		if version.entry != nil && winner.entry.Timestamp() == version.entry.Timestamp() {
+	for _, value := range versions {
+		if value.entry != nil && winner.entry.Timestamp() == value.entry.Timestamp() {
 			continue
 		}
 
 		// Sync
-		tmp := *version.host
+		tmp := *value.host
 		if tmp.CompareByID(dm.s.rt.This()) {
 			hkey := partitions.HKey(dm.name, winner.entry.Key())
 			part := dm.getPartitionByHKey(hkey, partitions.PRIMARY)
@@ -259,15 +259,15 @@ func (dm *DMap) readRepair(winner *version, versions []*version) {
 		} else {
 			// If readRepair is enabled, this function is called by every GET request.
 			cmd := protocol.NewPutEntry(dm.name, winner.entry.Key(), winner.entry.Encode()).Command(dm.s.ctx)
-			rc := dm.s.client.Get(version.host.String())
+			rc := dm.s.client.Get(value.host.String())
 			err := rc.Process(dm.s.ctx, cmd)
 			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", version.host, err)
+				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", value.host, err)
 				continue
 			}
 			err = cmd.Err()
 			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", version.host, err)
+				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", value.host, err)
 			}
 		}
 	}
