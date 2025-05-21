@@ -54,6 +54,8 @@ type version struct {
 	entry storage.Entry
 }
 
+// getOnFragment retrieves an entry from the associated fragment based on the provided environment details.
+// It returns the found entry or an error if the key is not found, too large, or expired.
 func (dm *DMap) getOnFragment(e *env) (storage.Entry, error) {
 	part := dm.getPartitionByHKey(e.hkey, e.kind)
 	f, err := dm.loadFragment(part)
@@ -81,6 +83,8 @@ func (dm *DMap) getOnFragment(e *env) (storage.Entry, error) {
 	return entry, nil
 }
 
+// lookupOnPreviousOwner retrieves the version of a key from a previous owner in the cluster.
+// It communicates with the specified owner node and decodes the value into a version object.
 func (dm *DMap) lookupOnPreviousOwner(owner *discovery.Member, key string) (*version, error) {
 	cmd := protocol.NewGetEntry(dm.name, key).Command(dm.s.ctx)
 	rc := dm.s.client.Get(owner.String())
@@ -108,6 +112,8 @@ func (dm *DMap) valueToVersion(value storage.Entry) *version {
 	}
 }
 
+// lookupOnThisNode searches for a key's version on the current node, considering
+// only the primary partition owner.
 func (dm *DMap) lookupOnThisNode(hkey uint64, key string) *version {
 	// Check on localhost, the partition owner.
 	part := dm.getPartitionByHKey(hkey, partitions.PRIMARY)
@@ -179,6 +185,8 @@ func (dm *DMap) sortVersions(versions []*version) []*version {
 	return versions
 }
 
+// sanitizeAndSortVersions removes nil versions from the input slice and sorts
+// the remaining versions by recency.
 func (dm *DMap) sanitizeAndSortVersions(versions []*version) []*version {
 	var sanitized []*version
 	// We use versions slice for read-repair. Clear nil values first.
@@ -193,6 +201,8 @@ func (dm *DMap) sanitizeAndSortVersions(versions []*version) []*version {
 	return dm.sortVersions(sanitized)
 }
 
+// lookupOnReplicas retrieves data from replica nodes for the given hash key and
+// key, returning a list of versioned entries.
 func (dm *DMap) lookupOnReplicas(hkey uint64, key string) []*version {
 	// Check backup.
 	backups := dm.s.backup.PartitionOwnersByHKey(hkey)
@@ -229,6 +239,8 @@ func (dm *DMap) lookupOnReplicas(hkey uint64, key string) []*version {
 	return versions
 }
 
+// readRepair performs synchronization of inconsistent replicas by applying the
+// winning version to out-of-sync nodes.
 func (dm *DMap) readRepair(winner *version, versions []*version) {
 	for _, value := range versions {
 		if value.entry != nil && winner.entry.Timestamp() == value.entry.Timestamp() {
@@ -273,10 +285,13 @@ func (dm *DMap) readRepair(winner *version, versions []*version) {
 	}
 }
 
+// getOnCluster retrieves the storage.Entry for a given hashed key and key string
+// from cluster nodes with read quorum. It ensures data consistency via read repair
+// and returns ErrKeyNotFound or ErrReadQuorum if conditions aren't met.
 func (dm *DMap) getOnCluster(hkey uint64, key string) (storage.Entry, error) {
-	// RUnlock should not be called with defer statement here because
-	// readRepair function may call putOnFragment function which needs a write
-	// lock. Please don't forget calling RUnlock before returning here.
+	// RUnlock should not be called with a defer statement here because
+	//  the readRepair function may call putOnFragment function which needs a write
+	// lock. Please remember calling RUnlock before returning here.
 	versions := dm.lookupOnOwners(hkey, key)
 	if dm.s.config.ReadQuorum >= config.MinimumReplicaCount {
 		v := dm.lookupOnReplicas(hkey, key)
