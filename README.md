@@ -1,6 +1,6 @@
 # Olric [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Olric%3A+Distributed+and+in-memory+key%2Fvalue+database.+It+can+be+used+both+as+an+embedded+Go+library+and+as+a+language-independent+service.+&url=https://github.com/olric-data/olric/&hashtags=golang,distributed,database)
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/olric-data/olric/.svg)](https://pkg.go.dev/github.com/olric-data/olric/) [![Go Report Card](https://goreportcard.com/badge/github.com/olric-data/olric/)](https://goreportcard.com/report/github.com/olric-data/olric/) [![Discord](https://img.shields.io/discord/721708998021087273.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ahK7Vjr8We) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Reference](https://pkg.go.dev/badge/github.com/olric-data/olric/.svg)](https://pkg.go.dev/github.com/olric-data/olric/) [![Go Report Card](https://goreportcard.com/badge/olric-data/olric)](https://goreportcard.com/report/github.com/olric-data/olric/) [![Discord](https://img.shields.io/discord/721708998021087273.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/ahK7Vjr8We) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Distributed In-Memory Cache & Key/Value Store
 
@@ -176,7 +176,7 @@ Software doesn't maintain itself. If you need support on complex topics or reque
 With a correctly configured Golang environment:
 
 ```
-go install github.com/olric-data/olric/cmd/olric-server@v0.5.7
+go install github.com/olric-data/olric/cmd/olric-server@v0.6.1
 ```
 
 Now you can start using Olric:
@@ -192,7 +192,7 @@ See [Configuration](#configuration) section to create your cluster properly.
 You can launch `olric-server` Docker container by running the following command. 
 
 ```bash
-docker run -p 3320:3320 olricio/olric-server:v0.5.4
+docker pull ghcr.io/olric-data/olric:latest
 ``` 
 
 This command will pull olric-server Docker image and run a new Olric Instance. You should know that the container exposes 
@@ -214,7 +214,7 @@ OK
 With olric-server, you can create an Olric cluster with a few commands. This is how to install olric-server:
 
 ```bash
-go install github.com/olric-data/olric/cmd/olric-server@v0.5.7
+go install github.com/olric-data/olric/cmd/olric-server@v0.6.1
 ```
 
 Let's create a cluster with the following:
@@ -283,7 +283,7 @@ this repository. `EmbeddedClient` provides a client implementation for [embedded
 Obviously, you can use `ClusterClient` for your embedded-member deployments. But it's good to use `EmbeddedClient` provides 
 a better performance due to localization of the queries.
 
-See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/olric-data/olric/@v0.5.7)
+See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/olric-data/olric/@v0.6.1)
 
 ## Cluster Events
 
@@ -1261,7 +1261,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.5.x
+  // Sample for Olric v0.6.x
 
   // Deployment scenario: embedded-member
   // This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1354,7 +1354,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.5.x
+  // Sample for Olric v0.6.x
 
   // Deployment scenario: embedded-member
   // This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1445,7 +1445,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.5.x
+  // Sample for Olric v0.6.x
 
   // Deployment scenario: client-server
 
@@ -1515,7 +1515,7 @@ import (
 )
 
 func main() {
-	// Sample for Olric v0.5.x
+	// Sample for Olric v0.6.x
 
 	// Deployment scenario: embedded-member
 	// This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1624,7 +1624,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.5.x
+  // Sample for Olric v0.6.x
 
   // Deployment scenario: client-server
 
