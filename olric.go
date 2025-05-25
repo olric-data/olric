@@ -212,6 +212,9 @@ func New(c *config.Config) (*Olric, error) {
 	}
 	e.Set("logger", flogger)
 
+	if c.Authentication.Enabled {
+		c.Client.Authentication = c.Authentication
+	}
 	client := server.NewClient(c.Client)
 	e.Set("client", client)
 	e.Set("primary", partitions.New(c.PartitionCount, partitions.PRIMARY))
