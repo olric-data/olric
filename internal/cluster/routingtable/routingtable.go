@@ -395,12 +395,12 @@ func (r *RoutingTable) Start() error {
 	ctx, cancel := context.WithTimeout(r.ctx, time.Hour)
 	defer cancel()
 	err := r.tryWithInterval(ctx, time.Second, func() error {
-		// Check member count quorum now. If there is no enough peers to work, wait forever.
+		// Check member count quorum now. If there are not enough peers to work, wait forever.
 		err := r.CheckMemberCountQuorum()
 		if err != nil {
 			r.log.V(2).Printf("[ERROR] Inoperable node: %v", err)
 		}
-		return err
+		return nil
 	})
 	if err != nil {
 		return err

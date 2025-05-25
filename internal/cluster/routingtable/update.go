@@ -85,7 +85,7 @@ func (r *RoutingTable) updateRoutingTableOnCluster() (map[discovery.Member]*left
 	r.Members().Range(func(id uint64, tmp discovery.Member) bool {
 		member := tmp
 		g.Go(func() error {
-			if err := sem.Acquire(r.ctx, 1); err != nil {
+			if err = sem.Acquire(r.ctx, 1); err != nil {
 				r.log.V(3).Printf("[ERROR] Failed to acquire semaphore to update routing table on %s: %v", member, err)
 				return err
 			}
