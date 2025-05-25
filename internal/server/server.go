@@ -28,19 +28,19 @@ import (
 )
 
 var (
-	// CommandsTotal is total number of all requests broken down by command (get, put, etc.) and status.
+	// CommandsTotal is the total number of all requests broken down by command (get, put, etc.) and status.
 	CommandsTotal = stats.NewInt64Counter()
 
-	// ConnectionsTotal is total number of connections opened since the server started running.
+	// ConnectionsTotal is the total number of connections opened since the server started running.
 	ConnectionsTotal = stats.NewInt64Counter()
 
-	// CurrentConnections is current number of open connections.
+	// CurrentConnections is the current number of open connections.
 	CurrentConnections = stats.NewInt64Gauge()
 
-	// WrittenBytesTotal is total number of bytes sent by this server to network.
+	// WrittenBytesTotal is the total number of bytes sent by this server to network.
 	WrittenBytesTotal = stats.NewInt64Counter()
 
-	// ReadBytesTotal is total number of bytes read by this server from network.
+	// ReadBytesTotal is the total number of bytes read by this server from network.
 	ReadBytesTotal = stats.NewInt64Counter()
 )
 
@@ -53,15 +53,20 @@ type Config struct {
 	RequireAuth     bool
 }
 
+// ConnContext represents the context for a connection with authentication state management.
 type ConnContext struct {
-	mtx           sync.RWMutex
+	mtx sync.RWMutex
+
+	// authenticated indicates whether the connection is successfully authenticated.
 	authenticated bool
 }
 
+// NewConnContext initializes and returns a new instance of ConnContext for managing connection states like authentication.
 func NewConnContext() *ConnContext {
 	return &ConnContext{}
 }
 
+// SetAuthenticated sets the authentication state of the connection to the specified value. It is thread-safe.
 func (c *ConnContext) SetAuthenticated(authenticated bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
@@ -69,6 +74,7 @@ func (c *ConnContext) SetAuthenticated(authenticated bool) {
 	c.authenticated = authenticated
 }
 
+// IsAuthenticated checks if the connection is authenticated. It is thread-safe and returns true if authenticated.
 func (c *ConnContext) IsAuthenticated() bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -76,10 +82,13 @@ func (c *ConnContext) IsAuthenticated() bool {
 	return c.authenticated
 }
 
+// ConnWrapper is a wrapper around net.Conn that enables tracking of read and written bytes.
 type ConnWrapper struct {
 	net.Conn
 }
 
+// Write sends data over the underlying connection and updates the total written bytes counter.
+// It returns the number of bytes written and any error encountered.
 func (cw *ConnWrapper) Write(b []byte) (n int, err error) {
 	nr, err := cw.Conn.Write(b)
 	if err != nil {
@@ -90,6 +99,7 @@ func (cw *ConnWrapper) Write(b []byte) (n int, err error) {
 	return nr, nil
 }
 
+// Read reads data into the provided byte slice, updates the read bytes counter, and returns the number of bytes read.
 func (cw *ConnWrapper) Read(b []byte) (n int, err error) {
 	nr, err := cw.Conn.Read(b)
 	if err != nil {
@@ -100,11 +110,13 @@ func (cw *ConnWrapper) Read(b []byte) (n int, err error) {
 	return nr, nil
 }
 
+// ListenerWrapper is a wrapper around net.Listener that supports setting a TCP keep-alive period for accepted connections.
 type ListenerWrapper struct {
 	net.Listener
 	keepAlivePeriod time.Duration
 }
 
+// Accept waits for and returns the next connection to the ListenerWrapper, applying TCP keep-alive settings if specified.
 func (lw *ListenerWrapper) Accept() (net.Conn, error) {
 	conn, err := lw.Listener.Accept()
 	if err != nil {
@@ -123,6 +135,7 @@ func (lw *ListenerWrapper) Accept() (net.Conn, error) {
 	return &ConnWrapper{conn}, nil
 }
 
+// Server is a TCP server struct that manages configurations, logging, and connection handling for RESP-based protocols.
 type Server struct {
 	config     *Config
 	mux        *ServeMux
@@ -139,7 +152,7 @@ type Server struct {
 	stopped chan struct{}
 }
 
-// New creates and returns a new Server.
+// New initializes and returns a new Server configured with the specified Config and Logger.
 func New(c *Config, l *flog.Logger) *Server {
 	// The server has to be started properly before accepting connections.
 	checkpoint.Add()
@@ -160,6 +173,7 @@ func New(c *Config, l *flog.Logger) *Server {
 	return s
 }
 
+// SetPreConditionFunc sets a precondition function to be executed before serving each command on the server.
 func (s *Server) SetPreConditionFunc(f func(conn redcon.Conn, cmd redcon.Command) bool) {
 	select {
 	case <-s.StartedCtx.Done():
@@ -174,7 +188,7 @@ func (s *Server) ServeMux() *ServeMuxWrapper {
 	return s.wmux
 }
 
-// ListenAndServe listens on the TCP network address addr.
+// ListenAndServe starts the TCP server, initializes internal components, and begins accepting connections.
 func (s *Server) ListenAndServe() error {
 	addr := net.JoinHostPort(s.config.BindAddr, strconv.Itoa(s.config.BindPort))
 	listener, err := net.Listen("tcp", addr)
@@ -218,7 +232,7 @@ func (s *Server) ListenAndServe() error {
 // Shutdown works by first closing all open listeners, then closing all idle connections,
 // and then waiting indefinitely for connections to return to idle and then shut down.
 // If the provided context expires before the shutdown is complete, Shutdown returns
-// the context's error, otherwise it returns any error returned from closing the Server's
+// the context's error; otherwise it returns any error returned from closing the Server's
 // underlying Listener(s).
 func (s *Server) Shutdown(ctx context.Context) error {
 	select {

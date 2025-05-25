@@ -88,7 +88,7 @@ var (
 	ErrClusterQuorum = errors.New("failed to find enough peers to create quorum")
 
 	// ErrKeyTooLarge means that the given key is too large to process.
-	// Maximum length of a key is 256 bytes.
+	// The maximum length of a key is 256 bytes.
 	ErrKeyTooLarge = errors.New("key too large")
 
 	// ErrEntryTooLarge returned if the required space for an entry is bigger than table size.
@@ -98,6 +98,7 @@ var (
 	// It is good to call RefreshMetadata to update the underlying data structures.
 	ErrConnRefused = errors.New("connection refused")
 
+	// ErrWrongPass represents an error indicating an invalid username-password pair or a disabled user.
 	ErrWrongPass = errors.New("invalid username-password pair or user is disabled")
 )
 
@@ -488,6 +489,7 @@ func convertDMapError(err error) error {
 	}
 }
 
+// registerErrors registers application-specific errors with their corresponding prefixes in the error management system.
 func registerErrors() {
 	protocol.SetError("WRONGPASS", ErrWrongPass)
 }

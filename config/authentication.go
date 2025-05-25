@@ -16,17 +16,20 @@ package config
 
 import "errors"
 
+// Authentication represents configuration settings for enabling and managing user authentication.
 type Authentication struct {
 	Enabled  bool
 	Username string
 	Password string
 }
 
+// Sanitize ensures the Authentication configuration is pre-processed and prepared for use, with no changes currently applied.
 func (a *Authentication) Sanitize() error {
 	// Nothing to do
 	return nil
 }
 
+// Validate checks if the Authentication configuration is valid, ensuring username and password are set if enabled.
 func (a *Authentication) Validate() error {
 	if a.Enabled {
 		if a.Username == "" {
