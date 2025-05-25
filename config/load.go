@@ -405,6 +405,11 @@ func Load(filename string) (*Config, error) {
 		BootstrapTimeout:           bootstrapTimeout,
 		LeaveTimeout:               leaveTimeout,
 		DMaps:                      dmapConfig,
+		Authentication: &Authentication{
+			Enabled:  c.Authentication.Enabled,
+			Username: c.Authentication.Username,
+			Password: c.Authentication.Password,
+		},
 	}
 
 	if err := cfg.Sanitize(); err != nil {

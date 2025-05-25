@@ -97,6 +97,8 @@ var (
 	// ErrConnRefused returned if the target node refused a connection request.
 	// It is good to call RefreshMetadata to update the underlying data structures.
 	ErrConnRefused = errors.New("connection refused")
+
+	ErrWrongPass = errors.New("invalid username-password pair or user is disabled")
 )
 
 // Olric implements a distributed cache and in-memory key/value data store.
@@ -234,6 +236,7 @@ func New(c *config.Config) (*Olric, error) {
 		BindAddr:        c.BindAddr,
 		BindPort:        c.BindPort,
 		KeepAlivePeriod: c.KeepAlivePeriod,
+		RequireAuth:     c.Authentication.Enabled,
 	}
 	srv := server.New(rc, flogger)
 	srv.SetPreConditionFunc(db.preconditionFunc)
@@ -247,6 +250,7 @@ func New(c *config.Config) (*Olric, error) {
 	}
 
 	db.registerCommandHandlers()
+	registerErrors()
 
 	return db, nil
 }
@@ -265,6 +269,7 @@ func (db *Olric) registerCommandHandlers() {
 	db.server.ServeMux().HandleFunc(protocol.Cluster.RoutingTable, db.clusterRoutingTableCommandHandler)
 	db.server.ServeMux().HandleFunc(protocol.Generic.Stats, db.statsCommandHandler)
 	db.server.ServeMux().HandleFunc(protocol.Cluster.Members, db.clusterMembersCommandHandler)
+	db.server.ServeMux().HandleFunc(protocol.Generic.Auth, db.authCommandHandler)
 }
 
 // callStartedCallback checks passed checkpoint count and calls the callback
@@ -481,4 +486,8 @@ func convertDMapError(err error) error {
 	default:
 		return convertClusterError(err)
 	}
+}
+
+func registerErrors() {
+	protocol.SetError("WRONGPASS", ErrWrongPass)
 }

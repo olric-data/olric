@@ -113,3 +113,13 @@ func TestServer_RESP_Stats(t *testing.T) {
 	require.NotEqual(t, int64(0), WrittenBytesTotal.Read())
 	require.NotEqual(t, int64(0), ReadBytesTotal.Read())
 }
+
+func TestConnContext_Authentication(t *testing.T) {
+	ctx := NewConnContext()
+	require.False(t, ctx.IsAuthenticated())
+
+	t.Run("Authenticated", func(t *testing.T) {
+		ctx.SetAuthenticated(true)
+		require.True(t, ctx.IsAuthenticated())
+	})
+}
