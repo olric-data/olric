@@ -37,6 +37,8 @@ const (
 
 // Client denotes configuration for TCP clients in Olric and the official Golang client.
 type Client struct {
+	Authentication *Authentication
+
 	// Dial timeout for establishing new connections.
 	// Default is 5 seconds.
 	DialTimeout time.Duration
@@ -106,7 +108,9 @@ type Client struct {
 
 // NewClient returns a new configuration object for clients.
 func NewClient() *Client {
-	c := &Client{}
+	c := &Client{
+		Authentication: &Authentication{},
+	}
 	err := c.Sanitize()
 	if err != nil {
 		panic(fmt.Sprintf("failed to create a new client configuration: %v", err))
@@ -116,6 +120,10 @@ func NewClient() *Client {
 
 // Sanitize sets default values to empty configuration variables, if it's possible.
 func (c *Client) Sanitize() error {
+	if err := c.Authentication.Sanitize(); err != nil {
+		return fmt.Errorf("failed to sanitize authentication configuration: %w", err)
+	}
+
 	if c.DialTimeout == 0 {
 		c.DialTimeout = DefaultDialTimeout
 	}
@@ -175,12 +183,17 @@ func (c *Client) Sanitize() error {
 }
 
 // Validate finds errors in the current configuration.
-func (c *Client) Validate() error { return nil }
+func (c *Client) Validate() error {
+	if err := c.Authentication.Validate(); err != nil {
+		return fmt.Errorf("failed to validate authentication configuration: %w", err)
+	}
+	return nil
+}
 
 func (c *Client) RedisOptions() *redis.Options {
 	// Note: IdleCheckFrequency is gone since go-redis no longer checks idle connections.
 	// See https://github.com/redis/go-redis/discussions/2635
-	return &redis.Options{
+	options := &redis.Options{
 		Network:         "tcp",
 		Dialer:          c.Dialer,
 		OnConnect:       c.OnConnect,
@@ -199,6 +212,11 @@ func (c *Client) RedisOptions() *redis.Options {
 		TLSConfig:       c.TLSConfig,
 		Limiter:         c.Limiter,
 	}
+	if c.Authentication.Enabled {
+		options.Username = c.Authentication.Username
+		options.Password = c.Authentication.Password
+	}
+	return options
 }
 
 // Interface guard
