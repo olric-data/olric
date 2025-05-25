@@ -34,8 +34,8 @@ type ServeMuxWrapper struct {
 type HandlerFunc func(conn redcon.Conn, cmd redcon.Command)
 
 type Handler struct {
-	handler func(conn redcon.Conn, cmd redcon.Command)
-	precond func(conn redcon.Conn, cmd redcon.Command) bool
+	handler      func(conn redcon.Conn, cmd redcon.Command)
+	precondition func(conn redcon.Conn, cmd redcon.Command) bool
 }
 
 // ServeRESP calls f(w, r)
@@ -51,20 +51,22 @@ func (h Handler) ServeRESP(conn redcon.Conn, cmd redcon.Command) {
 	if command == "pubsub" || command == "PUBSUB" {
 		command = fmt.Sprintf("%s %s", command, util.BytesToString(cmd.Args[1]))
 	}
-	// The node is updated by UpdateRoutingCmd. So it's a precondition for
-	// an operable node.
-	if command == protocol.Internal.UpdateRouting {
+
+	// Do not call precondition function for the following commands:
+	// * Internal.UpdateRouting
+	// * Generic.Auth
+	if command == protocol.Internal.UpdateRouting || command == protocol.Generic.Auth {
 		h.handler(conn, cmd)
 		return
 	}
 
-	if h.precond == nil {
+	if h.precondition == nil {
 		// No precondition
 		h.handler(conn, cmd)
 		return
 	}
 
-	if h.precond(conn, cmd) {
+	if h.precondition(conn, cmd) {
 		h.handler(conn, cmd)
 	}
 }
@@ -75,7 +77,7 @@ func (m *ServeMuxWrapper) HandleFunc(command string, handler func(conn redcon.Co
 		panic("server: nil handler")
 	}
 	m.mux.Handle(command, Handler{
-		handler: handler,
-		precond: m.precond,
+		handler:      handler,
+		precondition: m.precond,
 	})
 }
