@@ -65,9 +65,9 @@ server:
   enableClusterEventsChannel: true
 
 authentication:
-  enabled: true
-  username: "foobar"
-  password: "secret"
+  enabled: false
+  username: "your-username"
+  password: "your-password"
   
 client:
   # Timeout for TCP dial.
