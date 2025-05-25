@@ -202,3 +202,36 @@ func ParseStatsCommand(cmd redcon.Command) (*Stats, error) {
 
 	return s, nil
 }
+
+type Auth struct {
+	Username string
+	Password string
+}
+
+func NewAuth(username, password string) *Auth {
+	return &Auth{
+		Username: username,
+		Password: password,
+	}
+}
+
+func (a *Auth) Command(ctx context.Context) *redis.StatusCmd {
+	var args []interface{}
+
+	args = append(args, Generic.Auth)
+	args = append(args, a.Username)
+	args = append(args, a.Password)
+
+	return redis.NewStatusCmd(ctx, args...)
+}
+
+func ParseAuthCommand(cmd redcon.Command) (*Auth, error) {
+	if len(cmd.Args) != 3 {
+		return nil, errWrongNumber(cmd.Args)
+	}
+
+	return NewAuth(
+		util.BytesToString(cmd.Args[1]),
+		util.BytesToString(cmd.Args[2]),
+	), nil
+}
