@@ -106,3 +106,21 @@ func TestProtocol_Stats_CR(t *testing.T) {
 
 	require.True(t, parsed.CollectRuntime)
 }
+
+func TestProtocol_Auth(t *testing.T) {
+	auth := NewAuth("foobar", "secret")
+
+	cmd := stringToCommand(auth.Command(context.Background()).String())
+	parsed, err := ParseAuthCommand(cmd)
+	require.NoError(t, err)
+
+	require.Equal(t, "foobar", parsed.Username)
+	require.Equal(t, "secret", parsed.Password)
+}
+
+func TestProtocol_Auth_errWrongNumber(t *testing.T) {
+	cmd := stringToCommand("auth foobar:")
+
+	_, err := ParseAuthCommand(cmd)
+	require.Equal(t, "wrong number of arguments for 'auth foobar' command", err.Error())
+}
