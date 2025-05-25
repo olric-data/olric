@@ -68,11 +68,12 @@ func (dm *ClusterDMap) Name() string {
 	return dm.name
 }
 
+// processProtocolError processes protocol-related errors and translates them into defined application-level errors.
 func processProtocolError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return ErrKeyNotFound
 	}
 	if errors.Is(err, syscall.ECONNREFUSED) {
@@ -82,6 +83,7 @@ func processProtocolError(err error) error {
 	return convertDMapError(protocol.ConvertError(err))
 }
 
+// writePutCommand constructs and returns a new protocol.Put command based on the provided key, value, and configuration options.
 func (dm *ClusterDMap) writePutCommand(c *dmap.PutConfig, key string, value []byte) *protocol.Put {
 	cmd := protocol.NewPut(dm.name, key, value)
 	switch {
@@ -192,9 +194,8 @@ func (dm *ClusterDMap) Get(ctx context.Context, key string) (*GetResponse, error
 	return dm.makeGetResponse(cmd)
 }
 
-// Delete deletes values for the given keys. Delete will not return error
-// if key doesn't exist. It's thread-safe. It is safe to modify the contents
-// of the argument after Delete returns.
+// Delete deletes values for the given keys. Delete will not return an error if the key doesn't exist.
+// It's thread-safe. It is safe to modify the contents of the argument after Delete returns.
 func (dm *ClusterDMap) Delete(ctx context.Context, keys ...string) (int, error) {
 	rc, err := dm.client.Pick()
 	if err != nil {
@@ -254,7 +255,7 @@ func (dm *ClusterDMap) Decr(ctx context.Context, key string, delta int) (int, er
 	return int(res), nil
 }
 
-// GetPut atomically sets the key to value and returns the old value stored at key. It returns nil if there is no
+// GetPut atomically sets the key to value and returns the old value stored at a key. It returns nil if there is no
 // previous value.
 func (dm *ClusterDMap) GetPut(ctx context.Context, key string, value interface{}) (*GetResponse, error) {
 	rc, err := dm.clusterClient.smartPick(dm.name, key)
@@ -276,7 +277,7 @@ func (dm *ClusterDMap) GetPut(ctx context.Context, key string, value interface{}
 	err = processProtocolError(err)
 	if err != nil {
 		// First try to set a key/value with GetPut
-		if err == ErrKeyNotFound {
+		if errors.Is(err, ErrKeyNotFound) {
 			return nil, nil
 		}
 		return nil, err
@@ -336,7 +337,7 @@ func (dm *ClusterDMap) Expire(ctx context.Context, key string, timeout time.Dura
 // It returns immediately if it acquires the lock for the given key. Otherwise,
 // it waits until deadline.
 //
-// You should know that the locks are approximate, and only to be used for
+// You should know that the locks are approximate and only to be used for
 // non-critical purposes.
 func (dm *ClusterDMap) Lock(ctx context.Context, key string, deadline time.Duration) (LockContext, error) {
 	rc, err := dm.clusterClient.smartPick(dm.name, key)
@@ -362,13 +363,13 @@ func (dm *ClusterDMap) Lock(ctx context.Context, key string, deadline time.Durat
 }
 
 // LockWithTimeout sets a lock for the given key. If the lock is still unreleased
-// the end of given period of time, it automatically releases the lock.
+// the end of a given period of time, it automatically releases the lock.
 // Acquired lock is only for the key in this DMap.
 //
 // It returns immediately if it acquires the lock for the given key. Otherwise,
 // it waits until deadline.
 //
-// You should know that the locks are approximate, and only to be used for
+// You should know that the locks are approximate and only to be used for
 // non-critical purposes.
 func (dm *ClusterDMap) LockWithTimeout(ctx context.Context, key string, timeout, deadline time.Duration) (LockContext, error) {
 	rc, err := dm.clusterClient.smartPick(dm.name, key)
@@ -394,6 +395,7 @@ func (dm *ClusterDMap) LockWithTimeout(ctx context.Context, key string, timeout,
 	}, nil
 }
 
+// Unlock releases the distributed lock associated with the current context by using the provided context for execution.
 func (c *ClusterLockContext) Unlock(ctx context.Context) error {
 	rc, err := c.dm.clusterClient.smartPick(c.dm.name, c.key)
 	if err != nil {
@@ -407,6 +409,7 @@ func (c *ClusterLockContext) Unlock(ctx context.Context) error {
 	return processProtocolError(cmd.Err())
 }
 
+// Lease extends the lease of the distributed lock associated with the context for the specified duration.
 func (c *ClusterLockContext) Lease(ctx context.Context, duration time.Duration) error {
 	rc, err := c.dm.clusterClient.smartPick(c.dm.name, c.key)
 	if err != nil {
@@ -480,6 +483,7 @@ func (dm *ClusterDMap) Destroy(ctx context.Context) error {
 	return processProtocolError(cmd.Err())
 }
 
+// ClusterClient is a client for managing and interacting with a distributed cluster of nodes.
 type ClusterClient struct {
 	client         *server.Client
 	config         *clusterClientConfig
@@ -491,9 +495,9 @@ type ClusterClient struct {
 	cancel         context.CancelFunc
 }
 
-// Ping sends a ping message to an Olric node. Returns PONG if message is empty,
-// otherwise return a copy of the message as a bulk. This command is often used to test
-// if a connection is still alive, or to measure latency.
+// Ping sends a ping message to an Olric node. Returns PONG if a message is empty,
+// otherwise return a copy of the message as bulk. This command is often used to test
+// if a connection is still alive or to measure latency.
 func (cl *ClusterClient) Ping(ctx context.Context, addr, message string) (string, error) {
 	pingCmd := protocol.NewPing()
 	if message != "" {
@@ -615,7 +619,7 @@ func (cl *ClusterClient) Members(ctx context.Context) ([]Member, error) {
 }
 
 // RefreshMetadata fetches a list of available members and the latest routing
-// table version. It also closes stale clients, if there are any.
+// table version. It also closes stale clients if there are any.
 func (cl *ClusterClient) RefreshMetadata(ctx context.Context) error {
 	// Fetch a list of currently available cluster members.
 	var members []Member
@@ -694,8 +698,10 @@ func (cl *ClusterClient) NewDMap(name string, options ...DMapOption) (DMap, erro
 	}, nil
 }
 
+// ClusterClientOption is a functional option for configuring a clusterClientConfig instance.
 type ClusterClientOption func(c *clusterClientConfig)
 
+// clusterClientConfig holds the configuration required to initialize and manage a cluster client instance.
 type clusterClientConfig struct {
 	logger                    *log.Logger
 	config                    *config.Client
@@ -704,26 +710,31 @@ type clusterClientConfig struct {
 	routingTableFetchInterval time.Duration
 }
 
+// WithHasher sets a custom hasher implementation to the cluster client configuration.
 func WithHasher(h hasher.Hasher) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		cfg.hasher = h
 	}
 }
 
+// WithLogger sets a custom logger for the cluster client configuration.
 func WithLogger(l *log.Logger) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		cfg.logger = l
 	}
 }
 
+// WithConfig applies a specified config.Client to the clusterClientConfig.
 func WithConfig(c *config.Client) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		cfg.config = c
 	}
 }
 
+// WithCredentials configures authentication for the cluster client by setting the provided username and password.
 func WithCredentials(username, password string) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
+		// TODO: Use a dedicated struct for this
 		cfg.authentication = &config.Authentication{
 			Enabled:  true,
 			Username: username,
@@ -732,14 +743,15 @@ func WithCredentials(username, password string) ClusterClientOption {
 	}
 }
 
-// WithRoutingTableFetchInterval is used to set a custom value to routingTableFetchInterval. ClusterClient implementation
-// retrieves the routing table from the cluster to route requests to the partition owners.
+// WithRoutingTableFetchInterval sets the interval for periodic fetching of the routing table in a cluster client configuration.
 func WithRoutingTableFetchInterval(interval time.Duration) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		cfg.routingTableFetchInterval = interval
 	}
 }
 
+// fetchRoutingTable updates the cluster routing table by fetching the latest version from the cluster.
+// It initializes the partition count if it's the first invocation. Returns an error if fetching fails.
 func (cl *ClusterClient) fetchRoutingTable() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -758,6 +770,8 @@ func (cl *ClusterClient) fetchRoutingTable() error {
 	return nil
 }
 
+// fetchRoutingTablePeriodically periodically updates the routing table by invoking fetchRoutingTable at configured intervals.
+// It stops gracefully when the context is canceled or an error occurs.
 func (cl *ClusterClient) fetchRoutingTablePeriodically() {
 	defer cl.wg.Done()
 
