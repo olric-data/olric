@@ -79,6 +79,7 @@ func (c *Client) Get(addr string) *redis.Client {
 	}
 
 	opt := c.config.RedisOptions()
+	opt.Protocol = 2
 	opt.Addr = addr
 	rc = redis.NewClient(opt)
 	c.clients[addr] = rc
