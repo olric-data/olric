@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"sync"
 
 	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/internal/cluster/partitions"
@@ -153,25 +154,40 @@ func (dm *DMap) lookupOnOwners(hkey uint64, key string) []*version {
 		panic("partition owners list cannot be empty")
 	}
 
-	var versions []*version
+	var (
+		wg       sync.WaitGroup
+		mtx      sync.Mutex
+		versions []*version
+	)
 	versions = append(versions, dm.lookupOnThisNode(hkey, key))
 
 	// Run a query on the previous owners.
 	// Traverse in reverse order. Except from the latest host, this one.
 	for i := len(owners) - 2; i >= 0; i-- {
 		owner := owners[i]
-		v, err := dm.lookupOnPreviousOwner(&owner, key)
-		if err != nil {
-			if dm.s.log.V(6).Ok() {
-				dm.s.log.V(6).Printf("[ERROR] Failed to call get on a previous "+
-					"primary owner: %s: %v", owner, err)
+
+		wg.Add(1)
+		go func(member *discovery.Member) {
+			defer wg.Done()
+
+			v, err := dm.lookupOnPreviousOwner(member, key)
+			if err != nil {
+				if dm.s.log.V(6).Ok() {
+					dm.s.log.V(6).Printf("[ERROR] Failed to call get on a previous "+
+						"primary owner: %s: %v", member, err)
+				}
+				return
 			}
-			continue
-		}
-		// Ignore failed owners. The data on those hosts will be wiped out
-		// by the balancer.
-		versions = append(versions, v)
+
+			mtx.Lock()
+			// Ignore failed owners. The balancer will wipe out
+			// the data on those hosts.
+			versions = append(versions, v)
+			mtx.Unlock()
+		}(&owner)
 	}
+
+	wg.Wait()
 	return versions
 }
 
@@ -204,85 +220,108 @@ func (dm *DMap) sanitizeAndSortVersions(versions []*version) []*version {
 // lookupOnReplicas retrieves data from replica nodes for the given hash key and
 // key, returning a list of versioned entries.
 func (dm *DMap) lookupOnReplicas(hkey uint64, key string) []*version {
-	// Check backup.
-	backups := dm.s.backup.PartitionOwnersByHKey(hkey)
-	versions := make([]*version, 0, len(backups))
-	for _, replica := range backups {
-		host := replica
-		cmd := protocol.NewGetEntry(dm.name, key).SetReplica().Command(dm.s.ctx)
-		rc := dm.s.client.Get(host.String())
-		err := rc.Process(dm.s.ctx, cmd)
-		err = protocol.ConvertError(err)
-		if err != nil {
-			if dm.s.log.V(6).Ok() {
-				dm.s.log.V(6).Printf("[DEBUG] Failed to call get on"+
-					" a replica owner: %s: %v", host, err)
-			}
-			continue
-		}
+	// Check replicas
+	var (
+		wg  sync.WaitGroup
+		mtx sync.Mutex
+	)
 
-		value, err := cmd.Bytes()
-		err = protocol.ConvertError(err)
-		if err != nil {
-			if dm.s.log.V(6).Ok() {
-				dm.s.log.V(6).Printf("[DEBUG] Failed to call get on"+
-					" a replica owner: %s: %v", host, err)
-			}
-		}
+	replicas := dm.s.backup.PartitionOwnersByHKey(hkey)
+	versions := make([]*version, 0, len(replicas))
+	for _, replica := range replicas {
+		wg.Add(1)
+		go func(host *discovery.Member) {
+			defer wg.Done()
 
-		v := &version{host: &host}
-		e := dm.engine.NewEntry()
-		e.Decode(value)
-		v.entry = e
-		versions = append(versions, v)
+			cmd := protocol.NewGetEntry(dm.name, key).SetReplica().Command(dm.s.ctx)
+			rc := dm.s.client.Get(host.String())
+			err := rc.Process(dm.s.ctx, cmd)
+			err = protocol.ConvertError(err)
+			if err != nil {
+				if dm.s.log.V(6).Ok() {
+					dm.s.log.V(6).Printf("[DEBUG] Failed to call get on"+
+						" a replica owner: %s: %v", host, err)
+				}
+				return
+			}
+
+			value, err := cmd.Bytes()
+			err = protocol.ConvertError(err)
+			if err != nil {
+				if dm.s.log.V(6).Ok() {
+					dm.s.log.V(6).Printf("[DEBUG] Failed to call get on"+
+						" a replica owner: %s: %v", host, err)
+				}
+				return
+			}
+
+			v := &version{host: host}
+			e := dm.engine.NewEntry()
+			e.Decode(value)
+			v.entry = e
+
+			mtx.Lock()
+			versions = append(versions, v)
+			mtx.Unlock()
+		}(&replica)
 	}
+	wg.Wait()
 	return versions
 }
 
 // readRepair performs synchronization of inconsistent replicas by applying the
 // winning version to out-of-sync nodes.
 func (dm *DMap) readRepair(winner *version, versions []*version) {
+	var wg sync.WaitGroup
 	for _, value := range versions {
+
+		// Check the timestamp first, we apply the "last write wins" rule here.
 		if value.entry != nil && winner.entry.Timestamp() == value.entry.Timestamp() {
 			continue
 		}
 
-		// Sync
-		tmp := *value.host
-		if tmp.CompareByID(dm.s.rt.This()) {
-			hkey := partitions.HKey(dm.name, winner.entry.Key())
-			part := dm.getPartitionByHKey(hkey, partitions.PRIMARY)
-			f, err := dm.loadOrCreateFragment(part)
-			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to get or create the fragment for: %s on %s: %v",
-					winner.entry.Key(), dm.name, err)
-				return
-			}
+		wg.Add(1)
+		go func(v *version) {
+			defer wg.Done()
 
-			f.Lock()
-			e := newEnv(context.Background())
-			e.hkey = hkey
-			e.fragment = f
-			err = dm.putEntryOnFragment(e, winner.entry)
-			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize with replica: %v", err)
+			// Sync
+			tmp := *v.host
+			if tmp.CompareByID(dm.s.rt.This()) {
+				hkey := partitions.HKey(dm.name, winner.entry.Key())
+				part := dm.getPartitionByHKey(hkey, partitions.PRIMARY)
+				f, err := dm.loadOrCreateFragment(part)
+				if err != nil {
+					dm.s.log.V(3).Printf("[ERROR] Failed to get or create the fragment for: %s on %s: %v",
+						winner.entry.Key(), dm.name, err)
+					return
+				}
+
+				f.Lock()
+				e := newEnv(context.Background())
+				e.hkey = hkey
+				e.fragment = f
+				err = dm.putEntryOnFragment(e, winner.entry)
+				if err != nil {
+					dm.s.log.V(3).Printf("[ERROR] Failed to synchronize with replica: %v", err)
+				}
+				f.Unlock()
+			} else {
+				// If readRepair is enabled, this function is called by every GET request.
+				cmd := protocol.NewPutEntry(dm.name, winner.entry.Key(), winner.entry.Encode()).Command(dm.s.ctx)
+				rc := dm.s.client.Get(v.host.String())
+				err := rc.Process(dm.s.ctx, cmd)
+				if err != nil {
+					dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", v.host, err)
+					return
+				}
+				err = cmd.Err()
+				if err != nil {
+					dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", v.host, err)
+				}
 			}
-			f.Unlock()
-		} else {
-			// If readRepair is enabled, this function is called by every GET request.
-			cmd := protocol.NewPutEntry(dm.name, winner.entry.Key(), winner.entry.Encode()).Command(dm.s.ctx)
-			rc := dm.s.client.Get(value.host.String())
-			err := rc.Process(dm.s.ctx, cmd)
-			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", value.host, err)
-				continue
-			}
-			err = cmd.Err()
-			if err != nil {
-				dm.s.log.V(3).Printf("[ERROR] Failed to synchronize replica %s: %v", value.host, err)
-			}
-		}
+		}(value)
 	}
+	wg.Wait()
 }
 
 // getOnCluster retrieves the storage.Entry for a given hashed key and key string
@@ -332,6 +371,7 @@ func (dm *DMap) getOnCluster(hkey uint64, key string) (storage.Entry, error) {
 func (dm *DMap) Get(ctx context.Context, key string) (storage.Entry, error) {
 	hkey := partitions.HKey(dm.name, key)
 	member := dm.s.primary.PartitionByHKey(hkey).Owner()
+
 	// We are on the partition owner
 	if member.CompareByName(dm.s.rt.This()) {
 		entry, err := dm.getOnCluster(hkey, key)
