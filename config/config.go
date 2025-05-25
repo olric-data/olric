@@ -15,7 +15,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -163,12 +162,6 @@ const (
 	// connection closed events.
 	DefaultKeepAlivePeriod = 300 * time.Second
 )
-
-type Authentication struct {
-	Enabled  bool
-	Username string
-	Password string
-}
 
 // Config is the configuration to create a Olric instance.
 type Config struct {
@@ -380,16 +373,11 @@ func (c *Config) Validate() error {
 	}
 
 	if err := c.DMaps.Validate(); err != nil {
-		return err
+		return fmt.Errorf("failed to validate DMap configuration: %w", err)
 	}
 
-	if c.Authentication.Enabled {
-		if c.Authentication.Username == "" {
-			return errors.New("if authentication is enabled, username cannot be empty")
-		}
-		if c.Authentication.Password == "" {
-			return errors.New("if authentication is enabled, password cannot be empty")
-		}
+	if err := c.Authentication.Validate(); err != nil {
+		return fmt.Errorf("failed to sanitize authentication configuration: %w", err)
 	}
 
 	switch c.LogLevel {
@@ -499,6 +487,14 @@ func (c *Config) Sanitize() error {
 
 	if c.DMaps == nil {
 		c.DMaps = &DMaps{}
+	}
+
+	if c.Authentication == nil {
+		c.Authentication = &Authentication{}
+	}
+
+	if err := c.Authentication.Sanitize(); err != nil {
+		return fmt.Errorf("failed to sanitize authentication configuration: %w", err)
 	}
 
 	if err := c.Client.Sanitize(); err != nil {

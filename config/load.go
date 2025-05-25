@@ -362,7 +362,13 @@ func Load(filename string) (*Config, error) {
 		}
 	}
 
-	clientConfig := Client{}
+	clientConfig := Client{
+		Authentication: &Authentication{
+			Enabled:  c.Authentication.Enabled,
+			Username: c.Authentication.Username,
+			Password: c.Authentication.Password,
+		},
+	}
 	err = mapYamlToConfig(&clientConfig, &c.Client)
 	if err != nil {
 		return nil, err

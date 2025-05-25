@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -52,7 +53,7 @@ func (c *Client) Addresses() map[string]struct{} {
 	defer c.mu.RUnlock()
 
 	addresses := make(map[string]struct{})
-	for address, _ := range c.clients {
+	for address := range c.clients {
 		addresses[address] = struct{}{}
 	}
 	return addresses
@@ -92,7 +93,7 @@ func (c *Client) pickNodeRoundRobin() (string, error) {
 	defer c.mu.RUnlock()
 
 	addr, err := c.roundRobin.Get()
-	if err == roundrobin.ErrEmptyInstance {
+	if errors.Is(err, roundrobin.ErrEmptyInstance) {
 		return "", fmt.Errorf("no available client found")
 	}
 	if err != nil {
