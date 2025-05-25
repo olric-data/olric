@@ -699,6 +699,7 @@ type ClusterClientOption func(c *clusterClientConfig)
 type clusterClientConfig struct {
 	logger                    *log.Logger
 	config                    *config.Client
+	authentication            *config.Authentication
 	hasher                    hasher.Hasher
 	routingTableFetchInterval time.Duration
 }
@@ -718,6 +719,16 @@ func WithLogger(l *log.Logger) ClusterClientOption {
 func WithConfig(c *config.Client) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		cfg.config = c
+	}
+}
+
+func WithCredentials(username, password string) ClusterClientOption {
+	return func(cfg *clusterClientConfig) {
+		cfg.authentication = &config.Authentication{
+			Enabled:  true,
+			Username: username,
+			Password: password,
+		}
 	}
 }
 
@@ -787,6 +798,10 @@ func NewClusterClient(addresses []string, options ...ClusterClientOption) (*Clus
 
 	if cc.config == nil {
 		cc.config = config.NewClient()
+	}
+
+	if cc.authentication != nil {
+		cc.config.Authentication = cc.authentication
 	}
 
 	if cc.routingTableFetchInterval <= 0 {
