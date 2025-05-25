@@ -31,6 +31,7 @@ import (
 	"github.com/tidwall/redcon"
 )
 
+// errAuthRequired represents an error indicating that authentication is required to access the requested resource or operation.
 var errAuthRequired = errors.New("authentication required")
 
 // ServeMux is an RESP command multiplexer.
