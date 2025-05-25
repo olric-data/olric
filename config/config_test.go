@@ -40,6 +40,12 @@ var testConfig = `server:
   memberCountQuorum: 1
   enableClusterEventsChannel: true
 
+
+authentication:
+  enabled: true
+  username: "foobar"
+  password: "secret"
+
 client:
   dialTimeout: 8s
   readTimeout: 2s
@@ -213,6 +219,12 @@ func TestConfig(t *testing.T) {
 	c.ServiceDiscovery["replaceExistingChecks"] = true
 	c.ServiceDiscovery["insecureSkipVerify"] = true
 	c.ServiceDiscovery["payload"] = "SAMPLE-PAYLOAD"
+
+	c.Authentication = &Authentication{
+		Enabled:  true,
+		Username: "foobar",
+		Password: "secret",
+	}
 
 	err = c.Sanitize()
 	require.NoError(t, err)

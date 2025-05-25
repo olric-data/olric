@@ -50,6 +50,30 @@ type Config struct {
 	BindPort        int
 	KeepAlivePeriod time.Duration
 	IdleClose       time.Duration
+	RequireAuth     bool
+}
+
+type ConnContext struct {
+	mtx           sync.RWMutex
+	authenticated bool
+}
+
+func NewConnContext() *ConnContext {
+	return &ConnContext{}
+}
+
+func (c *ConnContext) SetAuthenticated(authenticated bool) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	c.authenticated = authenticated
+}
+
+func (c *ConnContext) IsAuthenticated() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.authenticated
 }
 
 type ConnWrapper struct {
@@ -124,7 +148,7 @@ func New(c *Config, l *flog.Logger) *Server {
 	startedCtx, started := context.WithCancel(context.Background())
 	s := &Server{
 		config:     c,
-		mux:        NewServeMux(),
+		mux:        NewServeMux(c),
 		log:        l,
 		started:    started,
 		StartedCtx: startedCtx,
@@ -169,6 +193,7 @@ func (s *Server) ListenAndServe() error {
 	srv := redcon.NewServer(addr,
 		s.mux.ServeRESP,
 		func(conn redcon.Conn) bool {
+			conn.SetContext(NewConnContext())
 			ConnectionsTotal.Increase(1)
 			CurrentConnections.Increase(1)
 			return true

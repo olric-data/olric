@@ -38,6 +38,12 @@ type server struct {
 	EnableClusterEventsChannel bool    `yaml:"enableClusterEventsChannel"`
 }
 
+type authentication struct {
+	Enabled  bool   `yaml:"enabled"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
 type client struct {
 	DialTimeout     string `yaml:"dialTimeout"`
 	ReadTimeout     string `yaml:"readTimeout"`
@@ -130,6 +136,7 @@ type Loader struct {
 	Client           client           `yaml:"client"`
 	DMaps            dmaps            `yaml:"dmaps"`
 	ServiceDiscovery serviceDiscovery `yaml:"serviceDiscovery"`
+	Authentication   authentication   `yaml:"authentication"`
 }
 
 // New tries to read Olric configuration from a YAML file.

@@ -95,6 +95,7 @@ var DMap = &DMapCommands{
 }
 
 type PubSubCommands struct {
+	PubSub          string
 	Publish         string
 	PublishInternal string
 	Subscribe       string
@@ -105,6 +106,7 @@ type PubSubCommands struct {
 }
 
 var PubSub = &PubSubCommands{
+	PubSub:          "pubsub",
 	Publish:         "publish",
 	PublishInternal: "publish.internal",
 	Subscribe:       "subscribe",

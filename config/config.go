@@ -15,6 +15,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -163,8 +164,16 @@ const (
 	DefaultKeepAlivePeriod = 300 * time.Second
 )
 
+type Authentication struct {
+	Enabled  bool
+	Username string
+	Password string
+}
+
 // Config is the configuration to create a Olric instance.
 type Config struct {
+	Authentication *Authentication
+
 	// Interface denotes a binding interface. It can be used instead of BindAddr
 	// if the interface is known but not the address. If both are provided, then
 	// Olric verifies that the interface has the bind address that is provided.
@@ -374,6 +383,15 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	if c.Authentication.Enabled {
+		if c.Authentication.Username == "" {
+			return errors.New("if authentication is enabled, username cannot be empty")
+		}
+		if c.Authentication.Password == "" {
+			return errors.New("if authentication is enabled, password cannot be empty")
+		}
+	}
+
 	switch c.LogLevel {
 	case LogLevelDebug, LogLevelWarn, LogLevelInfo, LogLevelError:
 	default:
@@ -530,6 +548,7 @@ func New(env string) *Config {
 		MemberCountQuorum: 1,
 		Peers:             []string{},
 		DMaps:             &DMaps{},
+		Authentication:    &Authentication{},
 	}
 
 	m, err := NewMemberlistConfig(env)
