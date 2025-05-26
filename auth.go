@@ -20,7 +20,7 @@ import (
 	"github.com/tidwall/redcon"
 )
 
-// authCommandHandler handles the authentication command by validating provided credentials against configured values.
+// authCommandHandler handles authentication requests sent by clients and verifies the provided password for access.
 func (db *Olric) authCommandHandler(conn redcon.Conn, cmd redcon.Command) {
 	authCmd, err := protocol.ParseAuthCommand(cmd)
 	if err != nil {
