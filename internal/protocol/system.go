@@ -203,16 +203,19 @@ func ParseStatsCommand(cmd redcon.Command) (*Stats, error) {
 	return s, nil
 }
 
+// Auth represents a structure for authentication containing a password.
 type Auth struct {
 	Password string
 }
 
+// NewAuth creates and returns a new Auth instance initialized with the given password.
 func NewAuth(password string) *Auth {
 	return &Auth{
 		Password: password,
 	}
 }
 
+// Command constructs a Redis AUTH command using the provided authentication password from the Auth instance.
 func (a *Auth) Command(ctx context.Context) *redis.StatusCmd {
 	var args []interface{}
 
@@ -222,6 +225,7 @@ func (a *Auth) Command(ctx context.Context) *redis.StatusCmd {
 	return redis.NewStatusCmd(ctx, args...)
 }
 
+// ParseAuthCommand parses a redcon.Command to create an Auth instance and validates command arguments.
 func ParseAuthCommand(cmd redcon.Command) (*Auth, error) {
 	if len(cmd.Args) != 2 {
 		return nil, errWrongNumber(cmd.Args)
