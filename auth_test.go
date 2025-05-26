@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthCommandHandler_WithCredentials(t *testing.T) {
+func TestAuthCommandHandler_WithPassword(t *testing.T) {
 	cluster := newTestOlricCluster(t)
 	testConfig := testutil.NewConfig()
 	testConfig.Authentication = &config.Authentication{
@@ -31,10 +31,10 @@ func TestAuthCommandHandler_WithCredentials(t *testing.T) {
 	}
 	db := cluster.addMemberWithConfig(t, testConfig)
 
-	expectedMessage := "error while discovering the cluster members: invalid username-password pair or user is disabled"
+	expectedMessage := "error while discovering the cluster members: wrong password"
 	ctx := context.Background()
 	t.Run("With correct credentials", func(t *testing.T) {
-		c, err := NewClusterClient([]string{db.name}, WithCredentials("test-user", "test-password"))
+		c, err := NewClusterClient([]string{db.name}, WithPassword("test-password"))
 		require.NoError(t, err)
 		defer func() {
 			require.NoError(t, c.Close(ctx))
@@ -46,12 +46,12 @@ func TestAuthCommandHandler_WithCredentials(t *testing.T) {
 	})
 
 	t.Run("With wrong credentials", func(t *testing.T) {
-		_, err := NewClusterClient([]string{db.name}, WithCredentials("wrong", "wrong"))
+		_, err := NewClusterClient([]string{db.name}, WithPassword("wrong"))
 		require.ErrorContains(t, err, expectedMessage)
 	})
 
 	t.Run("Without credentials", func(t *testing.T) {
-		_, err := NewClusterClient([]string{db.name}, WithCredentials("wrong", "wrong"))
+		_, err := NewClusterClient([]string{db.name}, WithPassword("wrong"))
 		require.ErrorContains(t, err, expectedMessage)
 	})
 }

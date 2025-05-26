@@ -42,8 +42,6 @@ var testConfig = `server:
 
 
 authentication:
-  enabled: true
-  username: "foobar"
   password: "secret"
 
 client:
