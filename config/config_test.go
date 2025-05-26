@@ -222,8 +222,6 @@ func TestConfig(t *testing.T) {
 
 	c.Authentication = &Authentication{
 		RequirePass: "secret",
-		Username:    "foobar",
-		Password:    "secret",
 	}
 	c.Client.Authentication = c.Authentication
 

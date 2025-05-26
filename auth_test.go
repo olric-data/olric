@@ -28,8 +28,6 @@ func TestAuthCommandHandler_WithCredentials(t *testing.T) {
 	testConfig := testutil.NewConfig()
 	testConfig.Authentication = &config.Authentication{
 		RequirePass: "test-password",
-		Username:    "test-user",
-		Password:    "test-password",
 	}
 	db := cluster.addMemberWithConfig(t, testConfig)
 
