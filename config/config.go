@@ -163,8 +163,9 @@ const (
 	DefaultKeepAlivePeriod = 300 * time.Second
 )
 
-// Config is the configuration to create a Olric instance.
+// Config represents the configuration structure for customizing the behavior and properties of Olric.
 type Config struct {
+	// Authentication defines authentication settings, including password protection, for securing access.
 	Authentication *Authentication
 
 	// Interface denotes a binding interface. It can be used instead of BindAddr
