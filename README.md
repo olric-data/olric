@@ -63,8 +63,6 @@ It's good at distributed caching and publish/subscribe messaging.
 * [Support](#support)
 * [Installing](#installing)
   * [Docker](#docker)
-  * [Kubernetes](#kubernetes)
-  * [Working with Docker Compose](#working-with-docker-compose)
 * [Getting Started](#getting-started)
   * [Operation Modes](#operation-modes)
     * [Embedded Member](#embedded-member)
@@ -185,7 +183,7 @@ Now you can start using Olric:
 olric-server -c cmd/olric-server/olric-server-local.yaml
 ```
 
-See [Configuration](#configuration) section to create your cluster properly.
+See the [Configuration](#configuration) section to create your cluster properly.
 
 ### Docker
 
