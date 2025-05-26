@@ -14,32 +14,29 @@
 
 package config
 
-import "errors"
+import "strings"
 
 // Authentication represents configuration settings for enabling and managing user authentication.
 type Authentication struct {
-	Enabled  bool
-	Username string
-	Password string
+	RequirePass string
+	Enabled     bool
+	Username    string
+	Password    string
 }
 
 // Sanitize ensures the Authentication configuration is pre-processed and prepared for use, with no changes currently applied.
 func (a *Authentication) Sanitize() error {
+	a.RequirePass = strings.TrimSpace(a.RequirePass)
+	return nil
+}
+
+func (a *Authentication) Validate() error {
 	// Nothing to do
 	return nil
 }
 
-// Validate checks if the Authentication configuration is valid, ensuring username and password are set if enabled.
-func (a *Authentication) Validate() error {
-	if a.Enabled {
-		if a.Username == "" {
-			return errors.New("if authentication is enabled, username cannot be empty")
-		}
-		if a.Password == "" {
-			return errors.New("if authentication is enabled, password cannot be empty")
-		}
-	}
-	return nil
+func (a *Authentication) Enabled2() bool {
+	return len(a.RequirePass) > 0
 }
 
 // Interface guard

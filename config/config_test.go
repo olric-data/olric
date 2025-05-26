@@ -221,9 +221,9 @@ func TestConfig(t *testing.T) {
 	c.ServiceDiscovery["payload"] = "SAMPLE-PAYLOAD"
 
 	c.Authentication = &Authentication{
-		Enabled:  true,
-		Username: "foobar",
-		Password: "secret",
+		RequirePass: "secret",
+		Username:    "foobar",
+		Password:    "secret",
 	}
 	c.Client.Authentication = c.Authentication
 
