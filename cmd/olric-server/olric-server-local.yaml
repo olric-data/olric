@@ -65,8 +65,6 @@ server:
   enableClusterEventsChannel: true
 
 authentication:
-  enabled: false
-  username: "your-username"
   password: "your-password"
   
 client:
