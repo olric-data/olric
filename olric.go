@@ -98,8 +98,8 @@ var (
 	// It is good to call RefreshMetadata to update the underlying data structures.
 	ErrConnRefused = errors.New("connection refused")
 
-	// ErrWrongPass represents an error indicating an invalid username-password pair or a disabled user.
-	ErrWrongPass = errors.New("invalid username-password pair or user is disabled")
+	// ErrWrongPass indicates that the provided password is incorrect during authentication.
+	ErrWrongPass = errors.New("wrong password")
 )
 
 // Olric implements a distributed cache and in-memory key/value data store.

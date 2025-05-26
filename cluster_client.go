@@ -731,10 +731,9 @@ func WithConfig(c *config.Client) ClusterClientOption {
 	}
 }
 
-// WithCredentials configures authentication for the cluster client by setting the provided username and password.
-func WithCredentials(username, password string) ClusterClientOption {
+// WithPassword configures a cluster client with the specified password for authentication.
+func WithPassword(password string) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
-		// TODO: Use a dedicated struct for this
 		cfg.authentication = &config.Authentication{
 			Password: password,
 		}
