@@ -16,12 +16,8 @@ package config
 
 import "strings"
 
-// Authentication represents configuration settings for enabling and managing user authentication.
 type Authentication struct {
 	RequirePass string
-	Enabled     bool
-	Username    string
-	Password    string
 }
 
 // Sanitize ensures the Authentication configuration is pre-processed and prepared for use, with no changes currently applied.
@@ -35,7 +31,7 @@ func (a *Authentication) Validate() error {
 	return nil
 }
 
-func (a *Authentication) Enabled2() bool {
+func (a *Authentication) Enabled() bool {
 	return len(a.RequirePass) > 0
 }
 

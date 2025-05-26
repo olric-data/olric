@@ -28,12 +28,11 @@ func (db *Olric) authCommandHandler(conn redcon.Conn, cmd redcon.Command) {
 		return
 	}
 
-	if authCmd.Username == db.config.Authentication.Username && authCmd.Password == db.config.Authentication.Password {
+	if authCmd.Password == db.config.Authentication.RequirePass {
 		ctx := conn.Context().(*server.ConnContext)
 		ctx.SetAuthenticated(true)
 		conn.WriteString(protocol.StatusOK)
 		return
 	}
-
 	protocol.WriteError(conn, ErrWrongPass)
 }
