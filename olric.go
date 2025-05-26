@@ -212,7 +212,7 @@ func New(c *config.Config) (*Olric, error) {
 	}
 	e.Set("logger", flogger)
 
-	if c.Authentication.Enabled {
+	if c.Authentication.Enabled2() {
 		c.Client.Authentication = c.Authentication
 	}
 	client := server.NewClient(c.Client)
@@ -240,7 +240,7 @@ func New(c *config.Config) (*Olric, error) {
 		BindAddr:        c.BindAddr,
 		BindPort:        c.BindPort,
 		KeepAlivePeriod: c.KeepAlivePeriod,
-		RequireAuth:     c.Authentication.Enabled,
+		RequireAuth:     c.Authentication.Enabled2(),
 	}
 	srv := server.New(rc, flogger)
 	srv.SetPreConditionFunc(db.preconditionFunc)

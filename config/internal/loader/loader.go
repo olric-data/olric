@@ -39,9 +39,10 @@ type server struct {
 }
 
 type authentication struct {
-	Enabled  bool   `yaml:"enabled"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	RequirePass string `yaml:"requirepass"`
+	Enabled     bool   `yaml:"enabled"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
 }
 
 type client struct {

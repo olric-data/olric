@@ -212,7 +212,7 @@ func (c *Client) RedisOptions() *redis.Options {
 		TLSConfig:       c.TLSConfig,
 		Limiter:         c.Limiter,
 	}
-	if c.Authentication.Enabled {
+	if c.Authentication.Enabled2() {
 		options.Username = c.Authentication.Username
 		options.Password = c.Authentication.Password
 	}

@@ -27,9 +27,9 @@ func TestAuthCommandHandler_WithCredentials(t *testing.T) {
 	cluster := newTestOlricCluster(t)
 	testConfig := testutil.NewConfig()
 	testConfig.Authentication = &config.Authentication{
-		Enabled:  true,
-		Username: "test-user",
-		Password: "test-password",
+		RequirePass: "test-password",
+		Username:    "test-user",
+		Password:    "test-password",
 	}
 	db := cluster.addMemberWithConfig(t, testConfig)
 
