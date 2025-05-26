@@ -39,7 +39,7 @@ type server struct {
 }
 
 type authentication struct {
-	RequirePass string `yaml:"requirepass"`
+	Password string `yaml:"password"`
 }
 
 type client struct {

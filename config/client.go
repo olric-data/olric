@@ -213,7 +213,7 @@ func (c *Client) RedisOptions() *redis.Options {
 		Limiter:         c.Limiter,
 	}
 	if c.Authentication.Enabled() {
-		options.Password = c.Authentication.RequirePass
+		options.Password = c.Authentication.Password
 	}
 	return options
 }
