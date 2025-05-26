@@ -32,7 +32,7 @@ import (
 )
 
 // errAuthRequired represents an error indicating that authentication is required to access the requested resource or operation.
-var errAuthRequired = errors.New("authentication required")
+var errAuthRequired = errors.New("Authentication required.")
 
 // ServeMux is an RESP command multiplexer.
 type ServeMux struct {
