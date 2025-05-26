@@ -364,7 +364,7 @@ func Load(filename string) (*Config, error) {
 
 	clientConfig := Client{
 		Authentication: &Authentication{
-			RequirePass: c.Authentication.RequirePass,
+			Password: c.Authentication.Password,
 		},
 	}
 	err = mapYamlToConfig(&clientConfig, &c.Client)
@@ -410,7 +410,7 @@ func Load(filename string) (*Config, error) {
 		LeaveTimeout:               leaveTimeout,
 		DMaps:                      dmapConfig,
 		Authentication: &Authentication{
-			RequirePass: c.Authentication.RequirePass,
+			Password: c.Authentication.Password,
 		},
 	}
 

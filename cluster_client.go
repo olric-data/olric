@@ -736,7 +736,7 @@ func WithCredentials(username, password string) ClusterClientOption {
 	return func(cfg *clusterClientConfig) {
 		// TODO: Use a dedicated struct for this
 		cfg.authentication = &config.Authentication{
-			RequirePass: password,
+			Password: password,
 		}
 	}
 }

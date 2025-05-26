@@ -17,22 +17,24 @@ package config
 import "strings"
 
 type Authentication struct {
-	RequirePass string
+	Password string
 }
 
 // Sanitize ensures the Authentication configuration is pre-processed and prepared for use, with no changes currently applied.
 func (a *Authentication) Sanitize() error {
-	a.RequirePass = strings.TrimSpace(a.RequirePass)
+	a.Password = strings.TrimSpace(a.Password)
 	return nil
 }
 
+// Validate checks the current Authentication configuration for validity and returns an error if issues are found.
 func (a *Authentication) Validate() error {
 	// Nothing to do
 	return nil
 }
 
+// Enabled checks if authentication is enabled by verifying if the password is set and returns true if it is configured.
 func (a *Authentication) Enabled() bool {
-	return len(a.RequirePass) > 0
+	return len(a.Password) > 0
 }
 
 // Interface guard

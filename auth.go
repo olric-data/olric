@@ -28,7 +28,7 @@ func (db *Olric) authCommandHandler(conn redcon.Conn, cmd redcon.Command) {
 		return
 	}
 
-	if authCmd.Password == db.config.Authentication.RequirePass {
+	if authCmd.Password == db.config.Authentication.Password {
 		ctx := conn.Context().(*server.ConnContext)
 		ctx.SetAuthenticated(true)
 		conn.WriteString(protocol.StatusOK)
