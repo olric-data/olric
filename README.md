@@ -23,7 +23,7 @@ See [Docker](#docker) and [Samples](#samples) sections to get started!
 
 Join our [Discord server!](https://discord.gg/ahK7Vjr8We)
 
-The current production version is [v0.6.1](https://github.com/olric-data/olric/tree/release/v0.6)
+The current production version is [v0.7.0](https://github.com/olric-data/olric/tree/release/v0.7)
 
 ### About renaming the module
 
@@ -176,7 +176,7 @@ Software doesn't maintain itself. If you need support on complex topics or reque
 With a correctly configured Golang environment:
 
 ```
-go install github.com/olric-data/olric/cmd/olric-server@v0.6.1
+go install github.com/olric-data/olric/cmd/olric-server@v0.7.0
 ```
 
 Now you can start using Olric:
@@ -214,7 +214,7 @@ OK
 With olric-server, you can create an Olric cluster with a few commands. This is how to install olric-server:
 
 ```bash
-go install github.com/olric-data/olric/cmd/olric-server@v0.6.1
+go install github.com/olric-data/olric/cmd/olric-server@v0.7.0
 ```
 
 Let's create a cluster with the following:
@@ -283,7 +283,7 @@ this repository. `EmbeddedClient` provides a client implementation for [embedded
 Obviously, you can use `ClusterClient` for your embedded-member deployments. But it's good to use `EmbeddedClient` provides 
 a better performance due to localization of the queries.
 
-See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/olric-data/olric/@v0.6.1)
+See the client documentation on [pkg.go.dev](https://pkg.go.dev/github.com/olric-data/olric/@v0.7.0)
 
 ## Cluster Events
 
@@ -1336,7 +1336,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.6.x
+  // Sample for Olric v0.7.x
 
   // Deployment scenario: embedded-member
   // This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1429,7 +1429,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.6.x
+  // Sample for Olric v0.7.x
 
   // Deployment scenario: embedded-member
   // This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1520,7 +1520,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.6.x
+  // Sample for Olric v0.7.x
 
   // Deployment scenario: client-server
 
@@ -1590,7 +1590,7 @@ import (
 )
 
 func main() {
-	// Sample for Olric v0.6.x
+	// Sample for Olric v0.7.x
 
 	// Deployment scenario: embedded-member
 	// This creates a single-node Olric cluster. It's good enough for experimenting.
@@ -1699,7 +1699,7 @@ import (
 )
 
 func main() {
-  // Sample for Olric v0.6.x
+  // Sample for Olric v0.7.x
 
   // Deployment scenario: client-server
 
