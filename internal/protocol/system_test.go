@@ -118,9 +118,9 @@ func TestProtocol_Auth(t *testing.T) {
 }
 
 func TestProtocol_Auth_errWrongNumber(t *testing.T) {
-	cmd := stringToCommand("auth foobar:")
+	cmd := stringToCommand("auth:")
 
 	_, err := ParseAuthCommand(cmd)
 	require.Error(t, err)
-	require.Equal(t, "wrong number of arguments for 'auth foobar' command", err.Error())
+	require.Equal(t, "wrong number of arguments for 'auth' command", err.Error())
 }
