@@ -69,6 +69,7 @@ It's good at distributed caching and publish/subscribe messaging.
     * [Client-Server](#client-server)
 * [Golang Client](#golang-client)
 * [Cluster Events](#cluster-events)
+* [Authentication](#authentication)
 * [Commands](#commands)
   * [Distributed Map](#distributed-map)
     * [DM.PUT](#dmput)
@@ -104,6 +105,7 @@ It's good at distributed caching and publish/subscribe messaging.
   * [Others](#others)
     * [PING](#ping)
     * [STATS](#stats)
+    * [AUTH](#auth)
 * [Configuration](#configuration)
     * [Embedded Member Mode](#embedded-member-mode)
       * [Manage the configuration in YAML format](#manage-the-configuration-in-yaml-format)
@@ -156,7 +158,7 @@ It's good at distributed caching and publish/subscribe messaging.
 * Provides a locking primitive which inspired by [SETNX of Redis](https://redis.io/commands/setnx#design-pattern-locking-with-codesetnxcode),
 * Provides a drop-in replacement of Redis' Publish-Subscribe messaging feature.
 
-See [Architecture](#architecture) section to see details.
+See the [Architecture](#architecture) section to see details.
 
 ## Support
 
@@ -295,7 +297,54 @@ Olric can send push cluster events to `cluster.events` channel. Available cluste
 If you want to receive these events, set `true` to `EnableClusterEventsChannel` and subscribe to `cluster.events` channel. 
 The default is `false`.
 
-See [events/cluster_events.go](events/cluster_events.go) file to get more information about events.
+See the [events/cluster_events.go](events/cluster_events.go) file to get more information about events.
+
+## Authentication
+
+Olric supports simple password-based authentication to restrict access to the data store. This mechanism is similar to the 
+`requirepass` directive in Redis and is intended to provide a basic level of protection in trusted environments (e.g., 
+internal networks or local development).
+
+> **Important**: This authentication method **does not provide transport-layer encryption or full access control**. For secure
+> deployments over untrusted networks (e.g., Internet), it's strongly recommended to place Olric behind a reverse proxy with TLS 
+> support or use a secure network overlay (e.g., WireGuard, VPN).
+
+### YAML-based Configuration
+
+You can enable password-based authentication by adding the `authentication` block to your configuration file:
+
+```yaml
+authentication:
+  password: "your-password"
+```
+
+When this is set, all clients must authenticate using the provided password before performing any operations.
+
+### Programmatic Configuration (Go API)
+
+For applications embedding Olric or configuring it dynamically in Go, you can enable authentication as follows:
+
+```go
+c := config.New("local")
+c.Authentication = &config.Authentication{
+    Password: "your-password",
+}
+```
+
+This sets the password required for any client to interact with the Olric node.
+
+### Client-Side Usage
+
+Clients must send the password using the [AUTH](#auth) command. If the password is incorrect or not provided, the connection will 
+be denied or commands will be rejected.
+
+With the cluster client, you can use `WithPassword` cluster client option.
+
+```go
+client, err := NewClusterClient([]string{db.name}, WithPassword("test-password"))
+```
+
+**Important:** The embedded client has not been covered by the authentication implementation.
 
 ## Commands
 
@@ -903,6 +952,34 @@ PING
 #### STATS
 
 The STATS command returns information and statistics about the server in JSON format. See `stats/stats.go` file.
+
+```
+127.0.0.1:3320> STATS
+<a large string in JSON format>
+```
+
+#### AUTH
+
+`AUTH` authenticates the client using the given password:
+
+```
+127.0.0.1:3320> AUTH your-password
+OK
+```
+
+Unauthenticated clients get `NOAUTH` error:
+
+```
+127.0.0.1:3320> DMAP.PUT dmap key value
+(error) NOAUTH Authentication required.
+```
+
+If you try to authenticate the client but the server is not configured, Olric returns the following error:
+
+```
+127.0.0.1:3320> AUTH your-password
+(error) ERR AUTH <password> called without any password configured for the default user. Are you sure your configuration is correct?
+```
 
 ## Configuration
 
