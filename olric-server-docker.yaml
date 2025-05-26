@@ -61,8 +61,8 @@ server:
   # cluster.events channel. Default is false.
   enableClusterEventsChannel: true
 
-authentication:
-  password: "your-password"
+#authentication:
+#  password: "your-password"
 
 client:
   # Timeout for TCP dial.

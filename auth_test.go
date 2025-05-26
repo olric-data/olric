@@ -55,3 +55,11 @@ func TestAuthCommandHandler_WithPassword(t *testing.T) {
 		require.ErrorContains(t, err, expectedMessage)
 	})
 }
+
+func TestAuthCommandHandler_Auth_Disabled(t *testing.T) {
+	cluster := newTestOlricCluster(t)
+	db := cluster.addMember(t)
+
+	_, err := NewClusterClient([]string{db.name}, WithPassword("test-password"))
+	require.ErrorContains(t, err, "error while discovering the cluster members: AUTH <password> called without any password configured for the default user. Are you sure your configuration is correct?")
+}
