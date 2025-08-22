@@ -395,6 +395,11 @@ func (dm *ClusterDMap) LockWithTimeout(ctx context.Context, key string, timeout,
 	}, nil
 }
 
+// Close stops background routines and frees allocated resources.
+func (dm *ClusterDMap) Close(_ context.Context) error {
+	return nil
+}
+
 // Unlock releases the distributed lock associated with the current context by using the provided context for execution.
 func (c *ClusterLockContext) Unlock(ctx context.Context) error {
 	rc, err := c.dm.clusterClient.smartPick(c.dm.name, c.key)
@@ -750,7 +755,7 @@ func WithRoutingTableFetchInterval(interval time.Duration) ClusterClientOption {
 // fetchRoutingTable updates the cluster routing table by fetching the latest version from the cluster.
 // It initializes the partition count if it's the first invocation. Returns an error if fetching fails.
 func (cl *ClusterClient) fetchRoutingTable() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(cl.ctx)
 	defer cancel()
 
 	routingTable, err := cl.RoutingTable(ctx)
