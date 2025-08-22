@@ -131,7 +131,7 @@ func (e *EmbeddedClient) RefreshMetadata(_ context.Context) error {
 // * Count
 // * Match
 func (dm *EmbeddedDMap) Scan(ctx context.Context, options ...ScanOption) (Iterator, error) {
-	cc, err := NewClusterClient([]string{dm.client.db.rt.This().String()})
+	cc, err := dm.setOrGetClusterClient()
 	if err != nil {
 		return nil, err
 	}
@@ -276,6 +276,18 @@ func (dm *EmbeddedDMap) Put(ctx context.Context, key string, value interface{}, 
 	err := dm.dm.Put(ctx, key, value, &pc)
 	if err != nil {
 		return convertDMapError(err)
+	}
+	return nil
+}
+
+// Close stops background routines and frees allocated resources.
+func (dm *EmbeddedDMap) Close(ctx context.Context) error {
+	dm.mtx.RLock()
+	clusterClient := dm.clusterClient
+	dm.mtx.RUnlock()
+
+	if clusterClient != nil {
+		return dm.clusterClient.Close(ctx)
 	}
 	return nil
 }

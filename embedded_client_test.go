@@ -17,6 +17,7 @@ package olric
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -613,4 +614,59 @@ func TestEmbeddedClient_Ping_WithMessage(t *testing.T) {
 	response, err := e.Ping(ctx, db.rt.This().String(), message)
 	require.NoError(t, err)
 	require.Equal(t, message, response)
+}
+
+func TestEmbeddedClient_Issue263(t *testing.T) {
+	cluster := newTestOlricCluster(t)
+	db := cluster.addMember(t)
+
+	e := db.NewEmbeddedClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	dm, err := e.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	// Create N key-value pairs:
+	const N = 100
+	for i := range N {
+		key := fmt.Sprintf("key-%d", i)
+		value := fmt.Sprintf("value-%d", i)
+		err := dm.Put(ctx, key, value)
+		require.NoError(t, err)
+	}
+
+	// Iterate M times over N keys:
+	const M = 100
+	for range M {
+		iter, err := dm.Scan(ctx)
+		require.NoError(t, err)
+		for iter.Next() {
+			// Do nothing
+		}
+		iter.Close()
+	}
+
+	require.NoError(t, dm.Close(ctx))
+	require.NoError(t, e.Close(ctx))
+	require.NoError(t, db.Shutdown(ctx))
+
+	cancel()
+
+	runtime.GC()
+	time.Sleep(time.Second)
+
+	s := runtime.MemStats{}
+	runtime.ReadMemStats(&s)
+
+	const (
+		KB = 1 << 10
+		MB = KB << 10
+	)
+
+	buf := make([]byte, MB)
+	stackSize := runtime.Stack(buf, true)
+
+	t.Logf("Non-freed objects: %d\n", s.Mallocs-s.Frees)
+	t.Logf("Mem in use (KB): %d\n", s.HeapAlloc/KB)
+	t.Logf("Go-routines remained: %d\n", runtime.NumGoroutine())
+	t.Logf("Stack traces:\n%s\n", buf[:stackSize])
 }
