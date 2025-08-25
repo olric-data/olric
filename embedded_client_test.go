@@ -642,6 +642,8 @@ func TestEmbeddedClient_DMap_Put_PX_With_NX(t *testing.T) {
 }
 
 func TestEmbeddedClient_Issue263(t *testing.T) {
+	initNumRoutines := runtime.NumGoroutine()
+
 	cluster := newTestOlricCluster(t)
 	db := cluster.addMember(t)
 
@@ -675,6 +677,8 @@ func TestEmbeddedClient_Issue263(t *testing.T) {
 	require.NoError(t, db.Shutdown(ctx))
 
 	cancel()
+
+	assert.Equal(t, initNumRoutines, runtime.NumGoroutine())
 
 	runtime.GC()
 	time.Sleep(time.Second)
