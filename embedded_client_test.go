@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/olric-data/olric/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
@@ -617,6 +618,8 @@ func TestEmbeddedClient_Ping_WithMessage(t *testing.T) {
 }
 
 func TestEmbeddedClient_Issue263(t *testing.T) {
+	initNumRoutines := runtime.NumGoroutine()
+
 	cluster := newTestOlricCluster(t)
 	db := cluster.addMember(t)
 
@@ -650,6 +653,8 @@ func TestEmbeddedClient_Issue263(t *testing.T) {
 	require.NoError(t, db.Shutdown(ctx))
 
 	cancel()
+
+	assert.Equal(t, initNumRoutines, runtime.NumGoroutine())
 
 	runtime.GC()
 	time.Sleep(time.Second)
