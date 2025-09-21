@@ -26,6 +26,7 @@ import (
 	"github.com/olric-data/olric/internal/cluster/partitions"
 	"github.com/olric-data/olric/internal/testcluster"
 	"github.com/olric-data/olric/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -362,4 +363,36 @@ func TestDMap_Put_ErrEntryTooLarge(t *testing.T) {
 
 	err = dm.Put(ctx, "key", data, nil)
 	require.ErrorIs(t, err, ErrEntryTooLarge)
+}
+
+func TestDMap_Put_PX_With_NX(t *testing.T) {
+	cluster := testcluster.New(NewService)
+	s1 := cluster.AddMember(nil).(*Service)
+	s2 := cluster.AddMember(nil).(*Service)
+	defer cluster.Shutdown()
+
+	ctx := context.Background()
+	dm1, err := s1.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	pc := &PutConfig{
+		HasPX: true,
+		PX:    time.Minute,
+		HasNX: true,
+	}
+	for i := range 10 {
+		err = dm1.Put(ctx, testutil.ToKey(i), testutil.ToVal(i), pc)
+		require.NoError(t, err)
+	}
+
+	<-time.After(10 * time.Millisecond)
+
+	dm2, err := s2.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	for i := range 10 {
+		gr, err := dm2.Get(ctx, testutil.ToKey(i))
+		require.NoError(t, err)
+		assert.NotZero(t, gr.TTL())
+	}
 }
