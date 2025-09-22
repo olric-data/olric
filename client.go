@@ -237,6 +237,9 @@ type DMap interface {
 	// Redis client has retransmission logic in case of timeouts, pipeline
 	// can be retransmitted and commands can be executed more than once.
 	Pipeline(opts ...PipelineOption) (*DMapPipeline, error)
+
+	// Close stops background routines and frees allocated resources.
+	Close(ctx context.Context) error
 }
 
 // PipelineOption is a function for defining options to control behavior of the Pipeline command.
