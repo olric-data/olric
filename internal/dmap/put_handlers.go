@@ -40,6 +40,9 @@ func (s *Service) putCommandHandler(conn redcon.Conn, cmd redcon.Command) {
 		pc.HasNX = true
 	case putCmd.XX:
 		pc.HasXX = true
+	}
+
+	switch {
 	case putCmd.EX != 0:
 		pc.HasEX = true
 		pc.EX = time.Duration(putCmd.EX * float64(time.Second))
