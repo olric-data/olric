@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/olric-data/olric/internal/kvstore/entry"
+	"github.com/olric-data/olric/internal/ramblock/entry"
 	"github.com/stretchr/testify/require"
 )
 

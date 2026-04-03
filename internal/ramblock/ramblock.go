@@ -13,10 +13,10 @@
 // limitations under the License.
 
 /*
-Package kvstore implements a GC friendly in-memory storage engine by using
+Package ramblock implements a GC friendly in-memory storage engine by using
 built-in maps and byte slices. It also supports compaction.
 */
-package kvstore
+package ramblock
 
 import (
 	"errors"
@@ -27,8 +27,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/olric-data/olric/internal/kvstore/entry"
-	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/internal/ramblock/entry"
+	"github.com/olric-data/olric/internal/ramblock/table"
 	"github.com/olric-data/olric/pkg/storage"
 )
 
@@ -40,8 +40,8 @@ const (
 	defaultMaxIdleTableTimeout = 15 * time.Minute
 )
 
-// KVStore implements an in-memory storage engine.
-type KVStore struct {
+// RamBlock implements an in-memory storage engine.
+type RamBlock struct {
 	coefficient         uint64
 	tableSize           uint64
 	tablesByCoefficient map[uint64]*table.Table
@@ -56,7 +56,7 @@ func DefaultConfig() *storage.Config {
 	return options
 }
 
-func New(c *storage.Config) (*KVStore, error) {
+func New(c *storage.Config) (*RamBlock, error) {
 	if c == nil {
 		c = DefaultConfig()
 	}
@@ -71,31 +71,31 @@ func New(c *storage.Config) (*KVStore, error) {
 		return nil, err
 	}
 
-	return &KVStore{
+	return &RamBlock{
 		tableSize:           size,
 		tablesByCoefficient: make(map[uint64]*table.Table),
 		config:              c,
 	}, nil
 }
 
-func (k *KVStore) SetConfig(c *storage.Config) {
-	k.config = c
+func (rb *RamBlock) SetConfig(c *storage.Config) {
+	rb.config = c
 }
 
-func (k *KVStore) makeTable() error {
-	if len(k.tables) != 0 {
-		head := k.tables[len(k.tables)-1]
+func (rb *RamBlock) makeTable() error {
+	if len(rb.tables) != 0 {
+		head := rb.tables[len(rb.tables)-1]
 		head.SetState(table.ReadOnlyState)
 
-		for i, t := range k.tables {
+		for i, t := range rb.tables {
 			if t.State() == table.RecycledState {
 
-				k.tables = append(k.tables[:i], k.tables[i+1:]...)
+				rb.tables = append(rb.tables[:i], rb.tables[i+1:]...)
 
-				k.tables = append(k.tables, t)
-				t.SetCoefficient(k.coefficient)
-				k.tablesByCoefficient[k.coefficient] = t
-				k.coefficient++
+				rb.tables = append(rb.tables, t)
+				t.SetCoefficient(rb.coefficient)
+				rb.tablesByCoefficient[rb.coefficient] = t
+				rb.coefficient++
 
 				t.SetState(table.ReadWriteState)
 				return nil
@@ -103,18 +103,18 @@ func (k *KVStore) makeTable() error {
 		}
 	}
 
-	newTable := table.New(k.tableSize)
-	k.tables = append(k.tables, newTable)
-	newTable.SetCoefficient(k.coefficient)
-	k.tablesByCoefficient[k.coefficient] = newTable
-	k.coefficient++
+	newTable := table.New(rb.tableSize)
+	rb.tables = append(rb.tables, newTable)
+	newTable.SetCoefficient(rb.coefficient)
+	rb.tablesByCoefficient[rb.coefficient] = newTable
+	rb.coefficient++
 	return nil
 }
 
-func (k *KVStore) SetLogger(_ *log.Logger) {}
+func (rb *RamBlock) SetLogger(_ *log.Logger) {}
 
-func (k *KVStore) Start() error {
-	if k.config == nil {
+func (rb *RamBlock) Start() error {
+	if rb.config == nil {
 		return errors.New("config cannot be nil")
 	}
 	return nil
@@ -178,17 +178,17 @@ func prepareTableSize(raw interface{}) (size uint64, err error) {
 	return
 }
 
-// Fork creates a new KVStore instance.
-func (k *KVStore) Fork(c *storage.Config) (storage.Engine, error) {
+// Fork creates a new RamBlock instance.
+func (rb *RamBlock) Fork(c *storage.Config) (storage.Engine, error) {
 	if c == nil {
-		c = k.config.Copy()
+		c = rb.config.Copy()
 	}
 
 	child, err := New(c)
 	if err != nil {
 		return nil, err
 	}
-	t := table.New(k.tableSize)
+	t := table.New(rb.tableSize)
 	child.tables = append(child.tables, t)
 	t.SetCoefficient(child.coefficient)
 	child.tablesByCoefficient[child.coefficient] = t
@@ -196,29 +196,29 @@ func (k *KVStore) Fork(c *storage.Config) (storage.Engine, error) {
 	return child, nil
 }
 
-func (k *KVStore) Name() string {
-	return "kvstore"
+func (rb *RamBlock) Name() string {
+	return "ramblock"
 }
 
-func (k *KVStore) NewEntry() storage.Entry {
+func (rb *RamBlock) NewEntry() storage.Entry {
 	return entry.New()
 }
 
 // putWithRetry ensures at least one table exists and retries the given write
 // function on a new table when the current one runs out of space.
-func (k *KVStore) putWithRetry(writeFn func(t *table.Table) error) error {
-	if len(k.tables) == 0 {
-		if err := k.makeTable(); err != nil {
+func (rb *RamBlock) putWithRetry(writeFn func(t *table.Table) error) error {
+	if len(rb.tables) == 0 {
+		if err := rb.makeTable(); err != nil {
 			return err
 		}
 	}
 
 	for {
 		// Get the last value, storage only calls Put on the last created table.
-		t := k.tables[len(k.tables)-1]
+		t := rb.tables[len(rb.tables)-1]
 		err := writeFn(t)
 		if errors.Is(err, table.ErrNotEnoughSpace) {
-			if err := k.makeTable(); err != nil {
+			if err := rb.makeTable(); err != nil {
 				return err
 			}
 			// try again
@@ -233,32 +233,32 @@ func (k *KVStore) putWithRetry(writeFn func(t *table.Table) error) error {
 }
 
 // PutRaw sets the raw value for the given key.
-func (k *KVStore) PutRaw(hkey uint64, value []byte) error {
-	if uint64(len(value)) > k.tableSize {
+func (rb *RamBlock) PutRaw(hkey uint64, value []byte) error {
+	if uint64(len(value)) > rb.tableSize {
 		return storage.ErrEntryTooLarge
 	}
 
-	return k.putWithRetry(func(t *table.Table) error {
+	return rb.putWithRetry(func(t *table.Table) error {
 		return t.PutRaw(hkey, value)
 	})
 }
 
 // Put sets the value for the given key. It overwrites any previous value for that key
-func (k *KVStore) Put(hkey uint64, value storage.Entry) error {
-	if requiredSizeForAnEntry(value) > k.tableSize {
+func (rb *RamBlock) Put(hkey uint64, value storage.Entry) error {
+	if requiredSizeForAnEntry(value) > rb.tableSize {
 		return storage.ErrEntryTooLarge
 	}
 
-	return k.putWithRetry(func(t *table.Table) error {
+	return rb.putWithRetry(func(t *table.Table) error {
 		return t.Put(hkey, value)
 	})
 }
 
 // GetRaw extracts encoded value for the given hkey. This is useful for merging tables.
-func (k *KVStore) GetRaw(hkey uint64) ([]byte, error) {
+func (rb *RamBlock) GetRaw(hkey uint64) ([]byte, error) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		raw, err := t.GetRaw(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -278,10 +278,10 @@ func (k *KVStore) GetRaw(hkey uint64) ([]byte, error) {
 // Get gets the value for the given key. It returns storage.ErrKeyNotFound if the DB
 // does not contain the key. The returned Entry is its own copy,
 // it is safe to modify the contents of the returned slice.
-func (k *KVStore) Get(hkey uint64) (storage.Entry, error) {
+func (rb *RamBlock) Get(hkey uint64) (storage.Entry, error) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		res, err := t.Get(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -299,10 +299,10 @@ func (k *KVStore) Get(hkey uint64) (storage.Entry, error) {
 
 // GetTTL gets the timeout for the given key. It returns storage.ErrKeyNotFound if the DB
 // does not contain the key.
-func (k *KVStore) GetTTL(hkey uint64) (int64, error) {
+func (rb *RamBlock) GetTTL(hkey uint64) (int64, error) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		ttl, err := t.GetTTL(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -319,10 +319,10 @@ func (k *KVStore) GetTTL(hkey uint64) (int64, error) {
 	return 0, storage.ErrKeyNotFound
 }
 
-func (k *KVStore) GetLastAccess(hkey uint64) (int64, error) {
+func (rb *RamBlock) GetLastAccess(hkey uint64) (int64, error) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		lastAccess, err := t.GetLastAccess(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -341,10 +341,10 @@ func (k *KVStore) GetLastAccess(hkey uint64) (int64, error) {
 
 // GetKey gets the key for the given hkey. It returns storage.ErrKeyNotFound if the DB
 // does not contain the key.
-func (k *KVStore) GetKey(hkey uint64) (string, error) {
+func (rb *RamBlock) GetKey(hkey uint64) (string, error) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		key, err := t.GetKey(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -362,10 +362,10 @@ func (k *KVStore) GetKey(hkey uint64) (string, error) {
 }
 
 // Delete deletes the value for the given key. Delete will not returns error if key doesn't exist.
-func (k *KVStore) Delete(hkey uint64) error {
+func (rb *RamBlock) Delete(hkey uint64) error {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		err := t.Delete(hkey)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -381,10 +381,10 @@ func (k *KVStore) Delete(hkey uint64) error {
 }
 
 // UpdateTTL updates the expiry for the given key.
-func (k *KVStore) UpdateTTL(hkey uint64, data storage.Entry) error {
+func (rb *RamBlock) UpdateTTL(hkey uint64, data storage.Entry) error {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		err := t.UpdateTTL(hkey, data)
 		if errors.Is(err, table.ErrHKeyNotFound) {
 			// Try out the other tables.
@@ -401,11 +401,11 @@ func (k *KVStore) UpdateTTL(hkey uint64, data storage.Entry) error {
 }
 
 // Stats is a function which provides memory allocation and garbage ratio of a storage instance.
-func (k *KVStore) Stats() storage.Stats {
+func (rb *RamBlock) Stats() storage.Stats {
 	stats := storage.Stats{
-		NumTables: len(k.tables),
+		NumTables: len(rb.tables),
 	}
-	for _, t := range k.tables {
+	for _, t := range rb.tables {
 		s := t.Stats()
 		stats.Allocated += int(s.Allocated)
 		stats.Inuse += int(s.Inuse)
@@ -416,10 +416,10 @@ func (k *KVStore) Stats() storage.Stats {
 }
 
 // Check checks the key existence.
-func (k *KVStore) Check(hkey uint64) bool {
+func (rb *RamBlock) Check(hkey uint64) bool {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		ok := t.Check(hkey)
 		if ok {
 			return true
@@ -434,10 +434,10 @@ func (k *KVStore) Check(hkey uint64) bool {
 // If f returns false, range stops the iteration. Range may be O(N) with
 // the number of elements in the map even if f returns false after a constant
 // number of calls.
-func (k *KVStore) Range(f func(hkey uint64, e storage.Entry) bool) {
+func (rb *RamBlock) Range(f func(hkey uint64, e storage.Entry) bool) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		t.Range(func(hkey uint64, e storage.Entry) bool {
 			return f(hkey, e)
 		})
@@ -448,19 +448,19 @@ func (k *KVStore) Range(f func(hkey uint64, e storage.Entry) bool) {
 // If f returns false, range stops the iteration. Range may be O(N) with
 // the number of elements in the map even if f returns false after a constant
 // number of calls.
-func (k *KVStore) RangeHKey(f func(hkey uint64) bool) {
+func (rb *RamBlock) RangeHKey(f func(hkey uint64) bool) {
 	// Scan available tables by starting the last added table.
-	for i := len(k.tables) - 1; i >= 0; i-- {
-		t := k.tables[i]
+	for i := len(rb.tables) - 1; i >= 0; i-- {
+		t := rb.tables[i]
 		t.RangeHKey(func(hkey uint64) bool {
 			return f(hkey)
 		})
 	}
 }
 
-func (k *KVStore) findCoefficient(coefficient uint64) (uint64, error) {
+func (rb *RamBlock) findCoefficient(coefficient uint64) (uint64, error) {
 	var sortedCoefficients []uint64
-	for newCf := range k.tablesByCoefficient {
+	for newCf := range rb.tablesByCoefficient {
 		sortedCoefficients = append(sortedCoefficients, newCf)
 	}
 	sort.Slice(sortedCoefficients, func(i, j int) bool { return sortedCoefficients[i] < sortedCoefficients[j] })
@@ -472,27 +472,27 @@ func (k *KVStore) findCoefficient(coefficient uint64) (uint64, error) {
 	return 0, io.EOF
 }
 
-func (k *KVStore) scanCommon(cursor uint64, expr string, count int, f func(e storage.Entry) bool) (uint64, error) {
-	if len(k.tables) == 0 {
+func (rb *RamBlock) scanCommon(cursor uint64, expr string, count int, f func(e storage.Entry) bool) (uint64, error) {
+	if len(rb.tables) == 0 {
 		return 0, nil
 	}
 
 	var err error
-	cf := cursor / k.tableSize
-	t, ok := k.tablesByCoefficient[cf]
+	cf := cursor / rb.tableSize
+	t, ok := rb.tablesByCoefficient[cf]
 	if !ok {
-		cf, err = k.findCoefficient(cf)
+		cf, err = rb.findCoefficient(cf)
 		if err != nil {
 			// Invalid cursor
 			return 0, nil
 		}
-		t = k.tablesByCoefficient[cf]
-		cursor = cf * k.tableSize
+		t = rb.tablesByCoefficient[cf]
+		cursor = cf * rb.tableSize
 	}
 
 	var tableCursor = cursor
 	if cf > 0 {
-		tableCursor = cursor - (k.tableSize * cf)
+		tableCursor = cursor - (rb.tableSize * cf)
 	}
 
 	if expr == "" {
@@ -505,37 +505,37 @@ func (k *KVStore) scanCommon(cursor uint64, expr string, count int, f func(e sto
 	}
 
 	if tableCursor == 0 {
-		_, ok := k.tablesByCoefficient[cf+1]
+		_, ok := rb.tablesByCoefficient[cf+1]
 		if !ok {
-			cf, err = k.findCoefficient(cf)
+			cf, err = rb.findCoefficient(cf)
 			if err != nil {
 				// Invalid cursor
 				return 0, nil
 			}
 			// findCoefficient already returns the next valid coefficient
-			return k.tableSize * cf, nil
+			return rb.tableSize * cf, nil
 		}
 		// The next table
-		return k.tableSize * (cf + 1), nil
+		return rb.tableSize * (cf + 1), nil
 	}
 
-	return tableCursor + (k.tableSize * cf), nil
+	return tableCursor + (rb.tableSize * cf), nil
 }
 
-func (k *KVStore) Scan(cursor uint64, count int, f func(e storage.Entry) bool) (uint64, error) {
-	return k.scanCommon(cursor, "", count, f)
+func (rb *RamBlock) Scan(cursor uint64, count int, f func(e storage.Entry) bool) (uint64, error) {
+	return rb.scanCommon(cursor, "", count, f)
 }
 
-func (k *KVStore) ScanRegexMatch(cursor uint64, expr string, count int, f func(e storage.Entry) bool) (uint64, error) {
-	return k.scanCommon(cursor, expr, count, f)
+func (rb *RamBlock) ScanRegexMatch(cursor uint64, expr string, count int, f func(e storage.Entry) bool) (uint64, error) {
+	return rb.scanCommon(cursor, expr, count, f)
 }
 
-func (k *KVStore) Close() error {
+func (rb *RamBlock) Close() error {
 	return nil
 }
 
-func (k *KVStore) Destroy() error {
+func (rb *RamBlock) Destroy() error {
 	return nil
 }
 
-var _ storage.Engine = (*KVStore)(nil)
+var _ storage.Engine = (*RamBlock)(nil)

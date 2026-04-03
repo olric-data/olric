@@ -24,8 +24,8 @@ import (
 	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/internal/cluster/partitions"
 	"github.com/olric-data/olric/internal/discovery"
-	"github.com/olric-data/olric/internal/kvstore"
 	"github.com/olric-data/olric/internal/protocol"
+	"github.com/olric-data/olric/internal/ramblock"
 	"github.com/olric-data/olric/internal/testcluster"
 	"github.com/olric-data/olric/internal/testutil"
 	"github.com/olric-data/olric/pkg/storage"
@@ -315,7 +315,7 @@ func TestDMap_Delete_Compaction(t *testing.T) {
 		"maxIdleTableTimeout": time.Millisecond,
 	}
 
-	kv, err := kvstore.New(storage.NewConfig(c.DMaps.Engine.Config))
+	kv, err := ramblock.New(storage.NewConfig(c.DMaps.Engine.Config))
 	require.NoError(t, err)
 	c.DMaps.Engine.Implementation = kv
 

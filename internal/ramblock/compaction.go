@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kvstore
+package ramblock
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/internal/ramblock/table"
 	"github.com/olric-data/olric/pkg/storage"
 )
 
-func (k *KVStore) evictTable(t *table.Table) error {
+func (rb *RamBlock) evictTable(t *table.Table) error {
 	var total int
 	var evictErr error
 	t.Range(func(hkey uint64, e storage.Entry) bool {
 		entry, _ := t.GetRaw(hkey)
-		err := k.PutRaw(hkey, entry)
+		err := rb.PutRaw(hkey, entry)
 		if errors.Is(err, table.ErrNotEnoughSpace) {
-			err := k.makeTable()
+			err := rb.makeTable()
 			if err != nil {
 				evictErr = err
 				return false
@@ -59,15 +59,15 @@ func (k *KVStore) evictTable(t *table.Table) error {
 
 	stats := t.Stats()
 	if stats.Inuse == 0 {
-		delete(k.tablesByCoefficient, t.Coefficient())
+		delete(rb.tablesByCoefficient, t.Coefficient())
 		t.Reset()
 	}
 
 	return evictErr
 }
 
-func (k *KVStore) isTableExpired(recycledAt int64) bool {
-	timeout, err := k.config.Get("maxIdleTableTimeout")
+func (rb *RamBlock) isTableExpired(recycledAt int64) bool {
+	timeout, err := rb.config.Get("maxIdleTableTimeout")
 	if err != nil {
 		// That would be impossible
 		panic(err)
@@ -76,15 +76,15 @@ func (k *KVStore) isTableExpired(recycledAt int64) bool {
 	return (time.Now().UnixNano() / 1000000) >= limit
 }
 
-func (k *KVStore) isCompactionOK(t *table.Table) bool {
+func (rb *RamBlock) isCompactionOK(t *table.Table) bool {
 	s := t.Stats()
 	return float64(s.Garbage) >= float64(s.Allocated)*maxGarbageRatio
 }
 
-func (k *KVStore) Compaction() (bool, error) {
-	for _, t := range k.tables {
-		if k.isCompactionOK(t) {
-			err := k.evictTable(t)
+func (rb *RamBlock) Compaction() (bool, error) {
+	for _, t := range rb.tables {
+		if rb.isCompactionOK(t) {
+			err := rb.evictTable(t)
 			if err != nil {
 				return false, err
 			}
@@ -93,16 +93,16 @@ func (k *KVStore) Compaction() (bool, error) {
 		}
 	}
 
-	for i := 0; i < len(k.tables); i++ {
-		t := k.tables[i]
+	for i := 0; i < len(rb.tables); i++ {
+		t := rb.tables[i]
 		s := t.Stats()
 		if t.State() == table.RecycledState {
-			if k.isTableExpired(s.RecycledAt) {
-				if len(k.tables) == 1 {
+			if rb.isTableExpired(s.RecycledAt) {
+				if len(rb.tables) == 1 {
 					break
 				}
-				delete(k.tablesByCoefficient, t.Coefficient())
-				k.tables = append(k.tables[:i], k.tables[i+1:]...)
+				delete(rb.tablesByCoefficient, t.Coefficient())
+				rb.tables = append(rb.tables[:i], rb.tables[i+1:]...)
 				i--
 			}
 		}

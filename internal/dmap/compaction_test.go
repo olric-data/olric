@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/olric-data/olric/internal/kvstore"
+	"github.com/olric-data/olric/internal/ramblock"
 	"github.com/olric-data/olric/pkg/storage"
 
 	"github.com/olric-data/olric/config"
@@ -39,7 +39,7 @@ func TestDMap_Compaction(t *testing.T) {
 		"tableSize":           uint64(2048), // overwrite tableSize to trigger compaction.
 		"maxIdleTableTimeout": time.Millisecond,
 	}
-	kv, err := kvstore.New(storage.NewConfig(c.DMaps.Engine.Config))
+	kv, err := ramblock.New(storage.NewConfig(c.DMaps.Engine.Config))
 	require.NoError(t, err)
 	c.DMaps.Engine.Implementation = kv
 

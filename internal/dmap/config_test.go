@@ -42,7 +42,7 @@ func TestDMap_Config(t *testing.T) {
 		LRUSamples:      20,
 		EvictionPolicy:  "NONE",
 		Engine: &config.Engine{
-			Name: "kvstore",
+			Name: "ramblock",
 			Config: map[string]interface{}{
 				"maxIdleTableTimeout": 15 * time.Minute,
 				"tableSize":           uint64(1048576),

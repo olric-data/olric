@@ -17,7 +17,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/olric-data/olric/internal/kvstore"
+	"github.com/olric-data/olric/internal/ramblock"
 	"github.com/olric-data/olric/pkg/storage"
 )
 
@@ -61,14 +61,14 @@ func (s *Engine) Sanitize() error {
 	if s.Implementation == nil {
 		switch s.Name {
 		case DefaultStorageEngine:
-			cfg := kvstore.DefaultConfig().ToMap()
+			cfg := ramblock.DefaultConfig().ToMap()
 			for key, value := range cfg {
 				_, ok := s.Config[key]
 				if !ok {
 					s.Config[key] = value
 				}
 			}
-			kv, err := kvstore.New(storage.NewConfig(s.Config))
+			kv, err := ramblock.New(storage.NewConfig(s.Config))
 			if err != nil {
 				return err
 			}

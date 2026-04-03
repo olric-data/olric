@@ -201,7 +201,7 @@ memberlist:
 
 dmaps:
   engine:
-    name: kvstore
+    name: ramblock
     config:
       tableSize: 524288 # bytes
 #  checkEmptyFragmentsInterval: 1m

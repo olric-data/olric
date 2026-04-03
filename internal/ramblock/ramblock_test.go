@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kvstore
+package ramblock
 
 import (
 	"bytes"
@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/olric-data/olric/internal/kvstore/entry"
-	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/internal/ramblock/entry"
+	"github.com/olric-data/olric/internal/ramblock/table"
 	"github.com/olric-data/olric/pkg/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +38,7 @@ func bval(i int) []byte {
 	return []byte(fmt.Sprintf("%025d", i))
 }
 
-func testKVStore(t *testing.T, c *storage.Config) storage.Engine {
+func testRamBlock(t *testing.T, c *storage.Config) storage.Engine {
 	kv, err := New(c)
 	require.NoError(t, err)
 
@@ -51,8 +51,8 @@ func testKVStore(t *testing.T, c *storage.Config) storage.Engine {
 	return child
 }
 
-func TestKVStore_Put(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Put(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 100; i++ {
 		e := entry.New()
@@ -66,8 +66,8 @@ func TestKVStore_Put(t *testing.T) {
 	}
 }
 
-func TestKVStore_Get(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Get(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
 	for i := 0; i < 100; i++ {
@@ -93,8 +93,8 @@ func TestKVStore_Get(t *testing.T) {
 	}
 }
 
-func TestKVStore_Delete(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Delete(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 100; i++ {
 		e := entry.New()
@@ -108,7 +108,7 @@ func TestKVStore_Delete(t *testing.T) {
 	}
 
 	garbage := make(map[int]uint64)
-	for i, tb := range s.(*KVStore).tables {
+	for i, tb := range s.(*RamBlock).tables {
 		s := tb.Stats()
 		garbage[i] = s.Inuse
 	}
@@ -122,7 +122,7 @@ func TestKVStore_Delete(t *testing.T) {
 		require.ErrorIs(t, err, storage.ErrKeyNotFound)
 	}
 
-	for i, tb := range s.(*KVStore).tables {
+	for i, tb := range s.(*RamBlock).tables {
 		s := tb.Stats()
 		require.Equal(t, uint64(0), s.Inuse)
 		require.Equal(t, 0, s.Length)
@@ -130,9 +130,9 @@ func TestKVStore_Delete(t *testing.T) {
 	}
 }
 
-func TestKVStore_ExportImport(t *testing.T) {
+func TestRamBlock_ExportImport(t *testing.T) {
 	timestamp := time.Now().UnixNano()
-	s := testKVStore(t, nil)
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 1000; i++ {
 		e := entry.New()
@@ -145,7 +145,7 @@ func TestKVStore_ExportImport(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	fresh := testKVStore(t, nil)
+	fresh := testRamBlock(t, nil)
 
 	ti := s.TransferIterator()
 	for ti.Next() {
@@ -175,8 +175,8 @@ func TestKVStore_ExportImport(t *testing.T) {
 	}
 }
 
-func TestKVStore_Stats_Length(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Stats_Length(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 100; i++ {
 		e := entry.New()
@@ -191,8 +191,8 @@ func TestKVStore_Stats_Length(t *testing.T) {
 	require.Equal(t, 100, s.Stats().Length)
 }
 
-func TestKVStore_Range(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Range(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkeys := make(map[uint64]struct{})
 	for i := 0; i < 100; i++ {
@@ -215,8 +215,8 @@ func TestKVStore_Range(t *testing.T) {
 	})
 }
 
-func TestKVStore_Check(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Check(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkeys := make(map[uint64]struct{})
 	for i := 0; i < 100; i++ {
@@ -237,8 +237,8 @@ func TestKVStore_Check(t *testing.T) {
 	}
 }
 
-func TestKVStore_UpdateTTL(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_UpdateTTL(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 100; i++ {
 		e := entry.New()
@@ -274,8 +274,8 @@ func TestKVStore_UpdateTTL(t *testing.T) {
 	}
 }
 
-func TestKVStore_GetKey(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetKey(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	e := entry.New()
 	e.SetKey(bkey(1))
@@ -293,8 +293,8 @@ func TestKVStore_GetKey(t *testing.T) {
 	}
 }
 
-func TestKVStore_PutRawGetRaw(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_PutRawGetRaw(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	value := []byte("value")
 	hkey := xxhash.Sum64([]byte("key"))
@@ -309,8 +309,8 @@ func TestKVStore_PutRawGetRaw(t *testing.T) {
 	}
 }
 
-func TestKVStore_GetTTL(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetTTL(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	e := entry.New()
 	e.SetKey(bkey(1))
@@ -329,8 +329,8 @@ func TestKVStore_GetTTL(t *testing.T) {
 	}
 }
 
-func TestKVStore_GetLastAccess(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetLastAccess(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	e := entry.New()
 	e.SetKey(bkey(1))
@@ -346,8 +346,8 @@ func TestKVStore_GetLastAccess(t *testing.T) {
 	require.NotEqual(t, 0, lastAccess)
 }
 
-func TestKVStore_Fork(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Fork(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
 	for i := 0; i < 10; i++ {
@@ -394,8 +394,8 @@ func TestKVStore_Fork(t *testing.T) {
 	}
 }
 
-func TestKVStore_StateChange(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_StateChange(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
 	// Current free space is 1 MB. Trigger a compaction operation.
@@ -410,36 +410,36 @@ func TestKVStore_StateChange(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	for i, tb := range s.(*KVStore).tables {
+	for i, tb := range s.(*RamBlock).tables {
 		if tb.State() == table.ReadWriteState {
-			require.Equalf(t, len(s.(*KVStore).tables)-1, i, "Writable table has to be the latest table")
+			require.Equalf(t, len(s.(*RamBlock).tables)-1, i, "Writable table has to be the latest table")
 		} else if tb.State() == table.ReadOnlyState {
-			require.True(t, i < len(s.(*KVStore).tables)-1)
+			require.True(t, i < len(s.(*RamBlock).tables)-1)
 		}
 	}
 }
 
-func TestKVStore_NewEntry(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_NewEntry(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	i := s.NewEntry()
 	_, ok := i.(*entry.Entry)
 	require.True(t, ok)
 }
 
-func TestKVStore_Name(t *testing.T) {
-	s := testKVStore(t, nil)
-	require.Equal(t, "kvstore", s.Name())
+func TestRamBlock_Name(t *testing.T) {
+	s := testRamBlock(t, nil)
+	require.Equal(t, "ramblock", s.Name())
 }
 
-func TestKVStore_CloseDestroy(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_CloseDestroy(t *testing.T) {
+	s := testRamBlock(t, nil)
 	require.NoError(t, s.Close())
 	require.NoError(t, s.Destroy())
 }
 
 func TestStorage_Scan(t *testing.T) {
-	s := testKVStore(t, nil)
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 1000000; i++ {
 		e := entry.New()
@@ -457,7 +457,7 @@ func TestStorage_Scan(t *testing.T) {
 		cursor uint64
 		err    error
 	)
-	k := s.(*KVStore)
+	k := s.(*RamBlock)
 	for {
 		cursor, err = k.Scan(cursor, 10, func(e storage.Entry) bool {
 			count++
@@ -473,7 +473,7 @@ func TestStorage_Scan(t *testing.T) {
 }
 
 func TestStorage_ScanRegexMatch(t *testing.T) {
-	s := testKVStore(t, nil)
+	s := testRamBlock(t, nil)
 
 	var key string
 	for i := 0; i < 1000000; i++ {
@@ -498,7 +498,7 @@ func TestStorage_ScanRegexMatch(t *testing.T) {
 		cursor uint64
 		err    error
 	)
-	k := s.(*KVStore)
+	k := s.(*RamBlock)
 	for {
 		cursor, err = k.ScanRegexMatch(cursor, "even:", 10, func(entry storage.Entry) bool {
 			count++
@@ -514,7 +514,7 @@ func TestStorage_ScanRegexMatch(t *testing.T) {
 }
 
 func TestStorage_ScanRegexMatch_OnlyOneEntry(t *testing.T) {
-	s := testKVStore(t, nil)
+	s := testRamBlock(t, nil)
 
 	for i := 0; i < 100; i++ {
 		e := entry.New()
@@ -541,7 +541,7 @@ func TestStorage_ScanRegexMatch_OnlyOneEntry(t *testing.T) {
 		count  int
 		cursor uint64
 	)
-	k := s.(*KVStore)
+	k := s.(*RamBlock)
 	for {
 		num += 1
 		cursor, err = k.ScanRegexMatch(cursor, "even:", 10, func(entry storage.Entry) bool {
@@ -564,8 +564,8 @@ func TestStorage_Scan_NonContiguousCoefficients(t *testing.T) {
 	// Use a small tableSize so that multiple tables are created quickly.
 	c := DefaultConfig()
 	c.Add("tableSize", 1024)
-	s := testKVStore(t, c)
-	k := s.(*KVStore)
+	s := testRamBlock(t, c)
+	k := s.(*RamBlock)
 
 	// Insert enough entries to create several tables (at least 4).
 	for i := 0; i < 200; i++ {
@@ -635,10 +635,10 @@ func TestStorage_Scan_NonContiguousCoefficients(t *testing.T) {
 		"scan should find all entries in remaining tables after coefficient gap")
 }
 
-func TestKVStore_Put_ErrEntryTooLarge(t *testing.T) {
+func TestRamBlock_Put_ErrEntryTooLarge(t *testing.T) {
 	c := DefaultConfig()
 	c.Add("tableSize", 1024)
-	s := testKVStore(t, c)
+	s := testRamBlock(t, c)
 	value := make([]byte, 2048)
 	e := entry.New()
 	e.SetKey("key")
@@ -700,7 +700,7 @@ func TestPrepareTableSize_InvalidType(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid type for tableSize")
 }
 
-func TestKVStore_New_NegativeTableSize(t *testing.T) {
+func TestRamBlock_New_NegativeTableSize(t *testing.T) {
 	c := storage.NewConfig(nil)
 	c.Add("tableSize", int(-1))
 	c.Add("maxIdleTableTimeout", defaultMaxIdleTableTimeout)
@@ -709,7 +709,7 @@ func TestKVStore_New_NegativeTableSize(t *testing.T) {
 	require.Contains(t, err.Error(), "tableSize cannot be negative")
 }
 
-func TestKVStore_Start_NilConfig(t *testing.T) {
+func TestRamBlock_Start_NilConfig(t *testing.T) {
 	kv, err := New(nil)
 	require.NoError(t, err)
 
@@ -719,10 +719,10 @@ func TestKVStore_Start_NilConfig(t *testing.T) {
 	require.Equal(t, "config cannot be nil", err.Error())
 }
 
-func TestKVStore_PutRaw_ErrEntryTooLarge(t *testing.T) {
+func TestRamBlock_PutRaw_ErrEntryTooLarge(t *testing.T) {
 	c := DefaultConfig()
 	c.Add("tableSize", 1024)
-	s := testKVStore(t, c)
+	s := testRamBlock(t, c)
 
 	value := make([]byte, 2048)
 	hkey := xxhash.Sum64([]byte("key"))
@@ -730,8 +730,8 @@ func TestKVStore_PutRaw_ErrEntryTooLarge(t *testing.T) {
 	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
 }
 
-func TestKVStore_GetRaw_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetRaw_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	raw, err := s.GetRaw(hkey)
@@ -739,8 +739,8 @@ func TestKVStore_GetRaw_KeyNotFound(t *testing.T) {
 	require.Nil(t, raw)
 }
 
-func TestKVStore_GetTTL_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetTTL_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	ttl, err := s.GetTTL(hkey)
@@ -748,8 +748,8 @@ func TestKVStore_GetTTL_KeyNotFound(t *testing.T) {
 	require.Equal(t, int64(0), ttl)
 }
 
-func TestKVStore_GetLastAccess_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetLastAccess_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	lastAccess, err := s.GetLastAccess(hkey)
@@ -757,8 +757,8 @@ func TestKVStore_GetLastAccess_KeyNotFound(t *testing.T) {
 	require.Equal(t, int64(0), lastAccess)
 }
 
-func TestKVStore_GetKey_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_GetKey_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	key, err := s.GetKey(hkey)
@@ -766,16 +766,16 @@ func TestKVStore_GetKey_KeyNotFound(t *testing.T) {
 	require.Equal(t, "", key)
 }
 
-func TestKVStore_Delete_NonExistentKey(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Delete_NonExistentKey(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	err := s.Delete(hkey)
 	require.NoError(t, err)
 }
 
-func TestKVStore_UpdateTTL_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_UpdateTTL_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	e := entry.New()
 	e.SetTTL(100)
@@ -786,15 +786,15 @@ func TestKVStore_UpdateTTL_KeyNotFound(t *testing.T) {
 	require.ErrorIs(t, err, storage.ErrKeyNotFound)
 }
 
-func TestKVStore_Check_KeyNotFound(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Check_KeyNotFound(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	hkey := xxhash.Sum64([]byte("nonexistent"))
 	require.False(t, s.Check(hkey))
 }
 
-func TestKVStore_RangeHKey(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_RangeHKey(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	expected := make(map[uint64]struct{})
 	for i := 0; i < 100; i++ {
@@ -816,7 +816,7 @@ func TestKVStore_RangeHKey(t *testing.T) {
 	require.Equal(t, expected, collected)
 }
 
-func TestKVStore_SetConfig(t *testing.T) {
+func TestRamBlock_SetConfig(t *testing.T) {
 	kv, err := New(nil)
 	require.NoError(t, err)
 
@@ -831,8 +831,8 @@ func TestKVStore_SetConfig(t *testing.T) {
 	require.Equal(t, uint64(2048), raw)
 }
 
-func TestKVStore_Fork_CustomConfig(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Fork_CustomConfig(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	customConfig := DefaultConfig()
 	customConfig.Add("tableSize", uint64(2048))
@@ -840,14 +840,14 @@ func TestKVStore_Fork_CustomConfig(t *testing.T) {
 	child, err := s.Fork(customConfig)
 	require.NoError(t, err)
 
-	childKV := child.(*KVStore)
+	childKV := child.(*RamBlock)
 	require.Equal(t, uint64(2048), childKV.tableSize)
 	require.Equal(t, 1, len(childKV.tables))
 	require.Equal(t, 0, child.Stats().Length)
 }
 
-func TestKVStore_MakeTable_RecycledTableReuse(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_MakeTable_RecycledTableReuse(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
 	// Insert entries with large values to fill multiple tables (default 1MB each).
@@ -878,7 +878,7 @@ func TestKVStore_MakeTable_RecycledTableReuse(t *testing.T) {
 		}
 	}
 
-	k := s.(*KVStore)
+	k := s.(*RamBlock)
 
 	// Verify at least one recycled table exists.
 	var recycledFound bool
@@ -920,8 +920,8 @@ func TestKVStore_MakeTable_RecycledTableReuse(t *testing.T) {
 		"Expected recycled table reuse to limit table growth")
 }
 
-func TestKVStore_EvictTable_PutRawError(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_EvictTable_PutRawError(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
 	// Insert entries with large values to fill multiple tables.
@@ -943,7 +943,7 @@ func TestKVStore_EvictTable_PutRawError(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	k := s.(*KVStore)
+	k := s.(*RamBlock)
 
 	// Shrink tableSize to force PutRaw to return ErrEntryTooLarge during eviction.
 	k.tableSize = 1
@@ -954,7 +954,7 @@ func TestKVStore_EvictTable_PutRawError(t *testing.T) {
 	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
 }
 
-func TestKVStore_Compaction_NoTables(t *testing.T) {
+func TestRamBlock_Compaction_NoTables(t *testing.T) {
 	k, err := New(nil)
 	require.NoError(t, err)
 
@@ -967,7 +967,7 @@ func TestKVStore_Compaction_NoTables(t *testing.T) {
 	require.True(t, done)
 }
 
-func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
+func TestRamBlock_IsCompactionOK_ExactThreshold(t *testing.T) {
 	// Each entry: key=1 byte + value=70 bytes + metadata=29 bytes = 100 bytes.
 	// Table size 1000 → 9 entries fit. Deleting N entries → garbage = N*100.
 	// maxGarbageRatio = 0.40, threshold = 1000 * 0.40 = 400.
@@ -986,7 +986,7 @@ func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := DefaultConfig()
 			config.Add("tableSize", uint64(1000))
-			s := testKVStore(t, config)
+			s := testRamBlock(t, config)
 
 			timestamp := time.Now().UnixNano()
 			// Insert 9 entries of exactly 100 bytes each.
@@ -1007,7 +1007,7 @@ func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			k := s.(*KVStore)
+			k := s.(*RamBlock)
 			tb := k.tables[0]
 
 			stats := tb.Stats()
@@ -1022,7 +1022,7 @@ func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
 }
 
 func TestTransferIterator_Drop_EmptyTables(t *testing.T) {
-	s := testKVStore(t, nil)
+	s := testRamBlock(t, nil)
 
 	// Put a single entry so we have one table with data.
 	e := entry.New()
@@ -1050,8 +1050,8 @@ func TestTransferIterator_Drop_EmptyTables(t *testing.T) {
 }
 
 func TestTransferIterator_Export_SkipsRecycledState(t *testing.T) {
-	s := testKVStore(t, nil)
-	k := s.(*KVStore)
+	s := testRamBlock(t, nil)
+	k := s.(*RamBlock)
 
 	// Insert enough data to create at least 2 tables.
 	timestamp := time.Now().UnixNano()

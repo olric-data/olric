@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kvstore
+package ramblock
 
 import (
 	"fmt"
@@ -20,16 +20,16 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/olric-data/olric/internal/kvstore/entry"
-	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/internal/ramblock/entry"
+	"github.com/olric-data/olric/internal/ramblock/table"
 	"github.com/stretchr/testify/require"
 )
 
-func TestKVStore_Compaction(t *testing.T) {
-	s := testKVStore(t, nil)
+func TestRamBlock_Compaction(t *testing.T) {
+	s := testRamBlock(t, nil)
 
 	timestamp := time.Now().UnixNano()
-	// Current free space is 1 MB. Trigger a compaction operation.
+	// The current free space is 1 MB. Trigger a compaction operation.
 	for i := 0; i < 1500; i++ {
 		e := entry.New()
 		e.SetKey(bkey(i))
@@ -56,7 +56,7 @@ func TestKVStore_Compaction(t *testing.T) {
 	}
 
 	var compacted bool
-	for _, tb := range s.(*KVStore).tables {
+	for _, tb := range s.(*RamBlock).tables {
 		stats := tb.Stats()
 		if stats.Inuse == 0 {
 			require.Equal(t, table.RecycledState, tb.State())
@@ -70,14 +70,14 @@ func TestKVStore_Compaction(t *testing.T) {
 	require.Truef(t, compacted, "Compaction could not work properly")
 }
 
-func TestKVStore_Compaction_MaxIdleTableDuration(t *testing.T) {
+func TestRamBlock_Compaction_MaxIdleTableDuration(t *testing.T) {
 	c := DefaultConfig()
 	c.Add("maxIdleTableTimeout", time.Millisecond)
 
-	s := testKVStore(t, c)
+	s := testRamBlock(t, c)
 
 	timestamp := time.Now().UnixNano()
-	// Current free space is 1 MB. Trigger a compaction operation.
+	// The current free space is 1 MB. Trigger a compaction operation.
 	for i := 0; i < 1500; i++ {
 		e := entry.New()
 		e.SetKey(bkey(i))
@@ -89,7 +89,7 @@ func TestKVStore_Compaction_MaxIdleTableDuration(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	require.Equal(t, 2, len(s.(*KVStore).tables))
+	require.Equal(t, 2, len(s.(*RamBlock).tables))
 
 	for i := 0; i < 800; i++ {
 		hkey := xxhash.Sum64([]byte(bkey(i)))
@@ -98,7 +98,7 @@ func TestKVStore_Compaction_MaxIdleTableDuration(t *testing.T) {
 	}
 
 	// It's still two because we have not triggered the compaction yet.
-	require.Equal(t, 2, len(s.(*KVStore).tables))
+	require.Equal(t, 2, len(s.(*RamBlock).tables))
 
 	for {
 		done, err := s.Compaction()
@@ -119,5 +119,5 @@ func TestKVStore_Compaction_MaxIdleTableDuration(t *testing.T) {
 		}
 	}
 
-	require.Equal(t, 1, len(s.(*KVStore).tables))
+	require.Equal(t, 1, len(s.(*RamBlock).tables))
 }

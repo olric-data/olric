@@ -130,7 +130,7 @@ const (
 
 	// DefaultStorageEngine denotes the storage engine implementation provided by
 	// Olric project.
-	DefaultStorageEngine = "kvstore"
+	DefaultStorageEngine = "ramblock"
 
 	// DefaultRoutingTablePushInterval is interval between routing table push events.
 	DefaultRoutingTablePushInterval = time.Minute

@@ -87,7 +87,7 @@ memberlist:
 
 dmaps:
   engine:
-    name: kvstore
+    name: ramblock
     config:
       tableSize: 202134
   numEvictionWorkers: 2

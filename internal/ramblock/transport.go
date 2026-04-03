@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kvstore
+package ramblock
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/olric-data/olric/internal/kvstore/table"
+	"github.com/olric-data/olric/internal/ramblock/table"
 	"github.com/olric-data/olric/pkg/storage"
 )
 
 type transferIterator struct {
-	storage *KVStore
+	storage *RamBlock
 }
 
 func (t *transferIterator) Next() bool {
@@ -57,7 +57,7 @@ func (t *transferIterator) Export() ([]byte, int, error) {
 	return nil, 0, io.EOF
 }
 
-func (k *KVStore) Import(data []byte, f func(uint64, storage.Entry) error) error {
+func (rb *RamBlock) Import(data []byte, f func(uint64, storage.Entry) error) error {
 	tb, err := table.Decode(data)
 	if err != nil {
 		return err
@@ -69,8 +69,8 @@ func (k *KVStore) Import(data []byte, f func(uint64, storage.Entry) error) error
 	return err
 }
 
-func (k *KVStore) TransferIterator() storage.TransferIterator {
+func (rb *RamBlock) TransferIterator() storage.TransferIterator {
 	return &transferIterator{
-		storage: k,
+		storage: rb,
 	}
 }
