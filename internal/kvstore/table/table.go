@@ -356,40 +356,7 @@ func (t *Table) Get(hkey uint64) (storage.Entry, error) {
 		return nil, ErrHKeyNotFound
 	}
 
-	e := &entry.Entry{}
-	// In-memory structure:
-	//
-	// KEY-LENGTH(uint8) | KEY(bytes) | TTL(uint64) | TIMESTAMP(uint64) | LASTACCESS(uint64) | VALUE-LENGTH(uint32) | VALUE(bytes)
-	klen := uint64(t.memory[offset])
-	offset++
-
-	e.SetKey(string(t.memory[offset : offset+klen]))
-	offset += klen
-
-	e.SetTTL(int64(binary.BigEndian.Uint64(t.memory[offset : offset+8])))
-	offset += 8
-
-	e.SetTimestamp(int64(binary.BigEndian.Uint64(t.memory[offset : offset+8])))
-	offset += 8
-
-	// Every GET call updates the last access time. We have to serialize the access to that field.
-	t.lastAccessMtx.RLock()
-	e.SetLastAccess(int64(binary.BigEndian.Uint64(t.memory[offset : offset+8])))
-	t.lastAccessMtx.RUnlock()
-
-	// Update the last access field
-	lastAccess := uint64(time.Now().UnixNano())
-	t.lastAccessMtx.Lock()
-	binary.BigEndian.PutUint64(t.memory[offset:], lastAccess)
-	t.lastAccessMtx.Unlock()
-
-	offset += 8
-
-	vlen := binary.BigEndian.Uint32(t.memory[offset : offset+4])
-	offset += 4
-	e.SetValue(t.memory[offset : offset+uint64(vlen)])
-
-	return e, nil
+	return t.get(offset), nil
 }
 
 // Delete removes the entry associated with the given hash key from the table.
