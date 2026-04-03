@@ -58,6 +58,11 @@ func (s *Engine) Sanitize() error {
 		s.Name = DefaultStorageEngine
 	}
 
+	// Backward compatibility: accept the old name "kvstore"
+	if s.Name == "kvstore" {
+		s.Name = DefaultStorageEngine
+	}
+
 	if s.Implementation == nil {
 		switch s.Name {
 		case DefaultStorageEngine:

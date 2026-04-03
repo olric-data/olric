@@ -20,6 +20,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEngine_KVStore_Backward_Compat(t *testing.T) {
+	e := NewEngine()
+	e.Name = "kvstore"
+
+	require.NoError(t, e.Sanitize())
+	require.NoError(t, e.Validate())
+	require.Equal(t, DefaultStorageEngine, e.Name)
+	require.NotNil(t, e.Implementation)
+}
+
 func TestEngine_Dont_Overwrite_TableSize(t *testing.T) {
 	e := NewEngine()
 	e.Name = DefaultStorageEngine
