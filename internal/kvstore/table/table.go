@@ -437,6 +437,7 @@ func (t *Table) Reset() {
 	if len(t.hkeys) != 0 {
 		t.hkeys = make(map[uint64]uint64)
 	}
+	t.offsetIndex = roaring64.New()
 	t.SetState(RecycledState)
 	t.inuse = 0
 	t.garbage = 0

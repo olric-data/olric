@@ -296,6 +296,72 @@ func TestTable_Reset(t *testing.T) {
 	require.Equal(t, uint64(0), stats.Inuse)
 	require.Equal(t, tb.allocated, stats.Allocated)
 	require.Equal(t, 0, stats.Length)
+
+	// Verify Scan returns no entries after Reset
+	var count int
+	cursor, err := tb.Scan(0, 100, func(e storage.Entry) bool {
+		count++
+		return true
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), cursor)
+	require.Equal(t, 0, count)
+}
+
+func TestTable_Reset_RecycleScenario(t *testing.T) {
+	tb := New(1 << 20)
+
+	// Phase 1: Put initial entries
+	for i := 0; i < 50; i++ {
+		e := entry.New()
+		ikey := fmt.Sprintf("old-key-%d", i)
+		idata := []byte(fmt.Sprintf("old-value-%d", i))
+		ihkey := xxhash.Sum64String(ikey)
+		e.SetKey(ikey)
+		e.SetValue(idata)
+		err := tb.Put(ihkey, e)
+		require.NoError(t, err)
+	}
+
+	// Phase 2: Reset (simulates compaction recycling)
+	tb.Reset()
+	tb.SetState(ReadWriteState) // mirrors makeTable() behavior
+
+	// Phase 3: Put new entries into the recycled table
+	newKeys := make(map[string]string)
+	for i := 0; i < 10; i++ {
+		e := entry.New()
+		ikey := fmt.Sprintf("new-key-%d", i)
+		idata := fmt.Sprintf("new-value-%d", i)
+		ihkey := xxhash.Sum64String(ikey)
+		e.SetKey(ikey)
+		e.SetValue([]byte(idata))
+		err := tb.Put(ihkey, e)
+		require.NoError(t, err)
+		newKeys[ikey] = idata
+	}
+
+	// Phase 4: Scan and verify ONLY new entries are returned
+	scannedKeys := make(map[string]string)
+	var cursor uint64
+	var err error
+	for {
+		cursor, err = tb.Scan(cursor, 10, func(e storage.Entry) bool {
+			scannedKeys[e.Key()] = string(e.Value())
+			return true
+		})
+		require.NoError(t, err)
+		if cursor == 0 {
+			break
+		}
+	}
+
+	require.Equal(t, len(newKeys), len(scannedKeys))
+	for k, v := range newKeys {
+		sv, ok := scannedKeys[k]
+		require.True(t, ok, "expected key %s not found in scan results", k)
+		require.Equal(t, v, sv)
+	}
 }
 
 func TestTable_Scan(t *testing.T) {
