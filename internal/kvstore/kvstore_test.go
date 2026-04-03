@@ -560,6 +560,81 @@ func TestStorage_ScanRegexMatch_OnlyOneEntry(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
+func TestStorage_Scan_NonContiguousCoefficients(t *testing.T) {
+	// Use a small tableSize so that multiple tables are created quickly.
+	c := DefaultConfig()
+	c.Add("tableSize", 1024)
+	s := testKVStore(t, c)
+	k := s.(*KVStore)
+
+	// Insert enough entries to create several tables (at least 4).
+	for i := 0; i < 200; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetValue(bval(i))
+		e.SetTTL(int64(i))
+		e.SetTimestamp(time.Now().UnixNano())
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+
+	require.Greater(t, len(k.tables), 3, "need at least 4 tables for this test")
+
+	// Count entries per table before deletion.
+	totalBefore := 0
+	for _, tbl := range k.tables {
+		totalBefore += tbl.Stats().Length
+	}
+
+	// Pick a middle table to delete (simulate compaction gap).
+	// Find a table that is not the first or last and has entries.
+	var deletedTable *table.Table
+	for _, tbl := range k.tables[1 : len(k.tables)-1] {
+		if tbl.Stats().Length > 0 {
+			deletedTable = tbl
+			break
+		}
+	}
+	require.NotNil(t, deletedTable, "could not find a middle table to delete")
+
+	deletedCf := deletedTable.Coefficient()
+	deletedCount := deletedTable.Stats().Length
+
+	// Remove the table from tablesByCoefficient to create a gap (like compaction does).
+	delete(k.tablesByCoefficient, deletedCf)
+
+	// Remove from tables slice as well.
+	for i, tbl := range k.tables {
+		if tbl == deletedTable {
+			k.tables = append(k.tables[:i], k.tables[i+1:]...)
+			break
+		}
+	}
+
+	expectedCount := totalBefore - deletedCount
+
+	// Scan all remaining entries.
+	var (
+		scannedCount int
+		cursor       uint64
+		err          error
+	)
+	for {
+		cursor, err = k.Scan(cursor, 10, func(e storage.Entry) bool {
+			scannedCount++
+			return true
+		})
+		require.NoError(t, err)
+		if cursor == 0 {
+			break
+		}
+	}
+
+	require.Equal(t, expectedCount, scannedCount,
+		"scan should find all entries in remaining tables after coefficient gap")
+}
+
 func TestKVStore_Put_ErrEntryTooLarge(t *testing.T) {
 	c := DefaultConfig()
 	c.Add("tableSize", 1024)

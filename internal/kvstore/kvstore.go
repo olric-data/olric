@@ -506,6 +506,8 @@ func (k *KVStore) scanCommon(cursor uint64, expr string, count int, f func(e sto
 				// Invalid cursor
 				return 0, nil
 			}
+			// findCoefficient already returns the next valid coefficient
+			return k.tableSize * cf, nil
 		}
 		// The next table
 		return k.tableSize * (cf + 1), nil
