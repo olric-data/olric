@@ -63,10 +63,12 @@ func (rb *RamBlock) Import(data []byte, f func(uint64, storage.Entry) error) err
 		return err
 	}
 
+	var callbackErr error
 	tb.Range(func(hkey uint64, e storage.Entry) bool {
-		return f(hkey, e) == nil
+		callbackErr = f(hkey, e)
+		return callbackErr == nil
 	})
-	return err
+	return callbackErr
 }
 
 func (rb *RamBlock) TransferIterator() storage.TransferIterator {

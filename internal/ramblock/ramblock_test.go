@@ -175,6 +175,33 @@ func TestRamBlock_ExportImport(t *testing.T) {
 	}
 }
 
+func TestRamBlock_Import_CallbackError(t *testing.T) {
+	s := testRamBlock(t, nil)
+
+	for i := 0; i < 10; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetValue(bval(i))
+		e.SetTimestamp(time.Now().UnixNano())
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+
+	ti := s.TransferIterator()
+	require.True(t, ti.Next())
+
+	data, _, err := ti.Export()
+	require.NoError(t, err)
+
+	expectedErr := errors.New("callback error")
+	fresh := testRamBlock(t, nil)
+	err = fresh.Import(data, func(hkey uint64, e storage.Entry) error {
+		return expectedErr
+	})
+	require.ErrorIs(t, err, expectedErr)
+}
+
 func TestRamBlock_Stats_Length(t *testing.T) {
 	s := testRamBlock(t, nil)
 
