@@ -650,3 +650,61 @@ func TestKVStore_Put_ErrEntryTooLarge(t *testing.T) {
 	err := s.Put(hkey, e)
 	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
 }
+
+func TestPrepareTableSize_NegativeValues(t *testing.T) {
+	negativeTests := []struct {
+		name string
+		raw  interface{}
+	}{
+		{"int", int(-1)},
+		{"int8", int8(-1)},
+		{"int16", int16(-1)},
+		{"int32", int32(-1)},
+		{"int64", int64(-1)},
+	}
+
+	for _, tt := range negativeTests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := prepareTableSize(tt.raw)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "tableSize cannot be negative")
+		})
+	}
+}
+
+func TestPrepareTableSize_ValidValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		raw      interface{}
+		expected uint64
+	}{
+		{"uint64", uint64(1024), 1024},
+		{"uint32", uint32(1024), 1024},
+		{"uint", uint(1024), 1024},
+		{"int", int(1024), 1024},
+		{"int64", int64(1024), 1024},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			size, err := prepareTableSize(tt.raw)
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, size)
+		})
+	}
+}
+
+func TestPrepareTableSize_InvalidType(t *testing.T) {
+	_, err := prepareTableSize("invalid")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid type for tableSize")
+}
+
+func TestKVStore_New_NegativeTableSize(t *testing.T) {
+	c := storage.NewConfig(nil)
+	c.Add("tableSize", int(-1))
+	c.Add("maxIdleTableTimeout", defaultMaxIdleTableTimeout)
+	_, err := New(c)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "tableSize cannot be negative")
+}

@@ -137,15 +137,40 @@ func prepareTableSize(raw interface{}) (size uint64, err error) {
 	case uint64:
 		size = raw.(uint64)
 	case int:
-		size = uint64(raw.(int))
+		v := raw.(int)
+		if v < 0 {
+			err = fmt.Errorf("tableSize cannot be negative: %d", v)
+			return
+		}
+		size = uint64(v)
 	case int8:
-		size = uint64(raw.(int8))
+		v := raw.(int8)
+		if v < 0 {
+			err = fmt.Errorf("tableSize cannot be negative: %d", v)
+			return
+		}
+		size = uint64(v)
 	case int16:
-		size = uint64(raw.(int16))
+		v := raw.(int16)
+		if v < 0 {
+			err = fmt.Errorf("tableSize cannot be negative: %d", v)
+			return
+		}
+		size = uint64(v)
 	case int32:
-		size = uint64(raw.(int32))
+		v := raw.(int32)
+		if v < 0 {
+			err = fmt.Errorf("tableSize cannot be negative: %d", v)
+			return
+		}
+		size = uint64(v)
 	case int64:
-		size = uint64(raw.(int64))
+		v := raw.(int64)
+		if v < 0 {
+			err = fmt.Errorf("tableSize cannot be negative: %d", v)
+			return
+		}
+		size = uint64(v)
 	default:
 		err = fmt.Errorf("invalid type for tableSize: %s", reflect.TypeOf(raw))
 		return
