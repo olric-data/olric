@@ -27,7 +27,12 @@ type transferIterator struct {
 }
 
 func (t *transferIterator) Next() bool {
-	return len(t.storage.tables) != 0
+	for _, tb := range t.storage.tables {
+		if tb.State() != table.RecycledState {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *transferIterator) Drop(index int) error {

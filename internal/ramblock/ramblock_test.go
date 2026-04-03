@@ -1114,3 +1114,55 @@ func TestTransferIterator_Export_SkipsRecycledState(t *testing.T) {
 	_, _, err = ti.Export()
 	require.ErrorIs(t, err, io.EOF)
 }
+
+func TestTransferIterator_Next_SkipsRecycledTables(t *testing.T) {
+	s := testRamBlock(t, nil)
+	k := s.(*RamBlock)
+
+	// Insert enough data to create at least 2 tables.
+	timestamp := time.Now().UnixNano()
+	for i := 0; i < 100000; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetTTL(int64(i))
+		e.SetValue([]byte(fmt.Sprintf("%01000d", i)))
+		e.SetTimestamp(timestamp)
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+	require.Greater(t, len(k.tables), 1, "need at least 2 tables for this test")
+
+	ti := s.TransferIterator()
+
+	// With non-recycled tables, Next() should return true.
+	require.True(t, ti.Next())
+
+	// Set ALL tables to RecycledState.
+	for _, tb := range k.tables {
+		tb.SetState(table.RecycledState)
+	}
+
+	// Next() must return false when all tables are recycled.
+	require.False(t, ti.Next(), "Next() should return false when all tables are recycled")
+
+	// Restore one table to ReadWriteState — Next() should return true again.
+	k.tables[0].SetState(table.ReadWriteState)
+	require.True(t, ti.Next(), "Next() should return true when at least one table is not recycled")
+
+	// Verify the full Next()+Export()+Drop() loop works with mixed states.
+	// Set the first table back to recycled so only non-recycled tables are exported.
+	k.tables[0].SetState(table.RecycledState)
+	k.tables[len(k.tables)-1].SetState(table.ReadOnlyState)
+
+	exported := 0
+	for ti.Next() {
+		_, index, err := ti.Export()
+		require.NoError(t, err)
+
+		err = ti.Drop(index)
+		require.NoError(t, err)
+		exported++
+	}
+	require.Equal(t, 1, exported, "should export exactly one non-recycled table")
+}
