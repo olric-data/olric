@@ -1020,3 +1020,70 @@ func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
 		})
 	}
 }
+
+func TestTransferIterator_Drop_EmptyTables(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	// Put a single entry so we have one table with data.
+	e := entry.New()
+	e.SetKey(bkey(0))
+	e.SetValue(bval(0))
+	e.SetTimestamp(time.Now().UnixNano())
+	hkey := xxhash.Sum64([]byte(e.Key()))
+	err := s.Put(hkey, e)
+	require.NoError(t, err)
+
+	// Drain all tables via Export + Drop.
+	ti := s.TransferIterator()
+	for ti.Next() {
+		_, index, err := ti.Export()
+		require.NoError(t, err)
+
+		err = ti.Drop(index)
+		require.NoError(t, err)
+	}
+
+	// Now tables slice is empty. Drop should return an error.
+	err = ti.Drop(0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "there is no table to drop")
+}
+
+func TestTransferIterator_Export_SkipsRecycledState(t *testing.T) {
+	s := testKVStore(t, nil)
+	k := s.(*KVStore)
+
+	// Insert enough data to create at least 2 tables.
+	timestamp := time.Now().UnixNano()
+	for i := 0; i < 100000; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetTTL(int64(i))
+		e.SetValue([]byte(fmt.Sprintf("%01000d", i)))
+		e.SetTimestamp(timestamp)
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+	require.Greater(t, len(k.tables), 1, "need at least 2 tables for this test")
+
+	// Set the first table to RecycledState.
+	k.tables[0].SetState(table.RecycledState)
+
+	ti := s.TransferIterator()
+
+	// Export should skip the recycled table and return the next non-recycled one.
+	data, index, err := ti.Export()
+	require.NoError(t, err)
+	require.NotNil(t, data)
+	require.Greater(t, index, 0, "Expected Export to skip index 0 (recycled table)")
+
+	// Now set ALL tables to RecycledState.
+	for _, tb := range k.tables {
+		tb.SetState(table.RecycledState)
+	}
+
+	// Export should return io.EOF when all tables are recycled.
+	_, _, err = ti.Export()
+	require.ErrorIs(t, err, io.EOF)
+}
