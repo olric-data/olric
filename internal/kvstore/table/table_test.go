@@ -17,6 +17,7 @@ package table
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -428,6 +429,137 @@ func TestTable_ScanRegexMatch(t *testing.T) {
 
 	require.Equal(t, 6, num)
 	require.Equal(t, 50, count)
+}
+
+func TestTable_Put_ErrKeyTooLarge(t *testing.T) {
+	tb := New(1 << 20)
+	e := entry.New()
+	longKey := strings.Repeat("k", MaxKeyLength)
+	e.SetKey(longKey)
+	e.SetValue([]byte("value"))
+
+	err := tb.Put(hkey, e)
+	require.ErrorIs(t, err, storage.ErrKeyTooLarge)
+}
+
+func TestTable_Put_OverwriteExistingKey(t *testing.T) {
+	tb := New(1024)
+	e1 := entry.New()
+	e1.SetKey("mykey")
+	e1.SetValue([]byte("old-value"))
+
+	err := tb.Put(hkey, e1)
+	require.NoError(t, err)
+
+	statsBefore := tb.Stats()
+
+	e2 := entry.New()
+	e2.SetKey("mykey")
+	e2.SetValue([]byte("new-value"))
+
+	err = tb.Put(hkey, e2)
+	require.NoError(t, err)
+
+	got, err := tb.Get(hkey)
+	require.NoError(t, err)
+	require.Equal(t, "new-value", string(got.Value()))
+	require.Equal(t, "mykey", got.Key())
+
+	statsAfter := tb.Stats()
+	require.Equal(t, 1, statsAfter.Length)
+	require.Greater(t, statsAfter.Garbage, statsBefore.Garbage)
+}
+
+func TestTable_PutRaw_ErrNotEnoughSpace(t *testing.T) {
+	tb := New(16)
+	data := make([]byte, 32)
+	err := tb.PutRaw(hkey, data)
+	require.ErrorIs(t, err, ErrNotEnoughSpace)
+}
+
+func TestTable_Put_ErrNotEnoughSpace(t *testing.T) {
+	tb := New(16)
+	e := entry.New()
+	e.SetKey("mykey")
+	e.SetValue([]byte("some-value-that-is-too-large"))
+
+	err := tb.Put(hkey, e)
+	require.ErrorIs(t, err, ErrNotEnoughSpace)
+}
+
+func TestTable_GetRaw_ErrHKeyNotFound(t *testing.T) {
+	tb := New(1024)
+	_, err := tb.GetRaw(hkey)
+	require.ErrorIs(t, err, ErrHKeyNotFound)
+}
+
+func TestTable_Delete_ErrHKeyNotFound(t *testing.T) {
+	tb := New(1024)
+	err := tb.Delete(hkey)
+	require.ErrorIs(t, err, ErrHKeyNotFound)
+}
+
+func TestTable_UpdateTTL_ErrHKeyNotFound(t *testing.T) {
+	tb := New(1024)
+	e := entry.New()
+	e.SetTTL(time.Now().UnixNano())
+	err := tb.UpdateTTL(hkey, e)
+	require.ErrorIs(t, err, ErrHKeyNotFound)
+}
+
+func TestTable_RangeHKey(t *testing.T) {
+	tb := New(1 << 20)
+	expected := make(map[uint64]struct{})
+	for i := 0; i < 50; i++ {
+		e := entry.New()
+		ikey := fmt.Sprintf("key-%d", i)
+		ihkey := xxhash.Sum64String(ikey)
+		e.SetKey(ikey)
+		e.SetValue([]byte(fmt.Sprintf("value-%d", i)))
+		err := tb.Put(ihkey, e)
+		require.NoError(t, err)
+		expected[ihkey] = struct{}{}
+	}
+
+	collected := make(map[uint64]struct{})
+	tb.RangeHKey(func(hk uint64) bool {
+		collected[hk] = struct{}{}
+		return true
+	})
+	require.Equal(t, expected, collected)
+
+	// Test early stop: callback returns false after first call
+	var count int
+	tb.RangeHKey(func(hk uint64) bool {
+		count++
+		return false
+	})
+	require.Equal(t, 1, count)
+}
+
+func TestTable_ScanRegexMatch_InvalidRegex(t *testing.T) {
+	tb := New(1024)
+	e := entry.New()
+	e.SetKey("test")
+	e.SetValue([]byte("value"))
+	err := tb.Put(hkey, e)
+	require.NoError(t, err)
+
+	_, err = tb.ScanRegexMatch(0, "[invalid", 10, func(e storage.Entry) bool {
+		return true
+	})
+	require.Error(t, err)
+}
+
+func TestTable_Coefficient(t *testing.T) {
+	tb := New(1024)
+	require.Equal(t, uint64(0), tb.Coefficient())
+
+	tb.SetCoefficient(42)
+	require.Equal(t, uint64(42), tb.Coefficient())
+
+	tb.SetCoefficient(0)
+	require.Equal(t, uint64(0), tb.Coefficient())
 }
 
 func TestTable_ScanRegexMatch_SingleMatch(t *testing.T) {
