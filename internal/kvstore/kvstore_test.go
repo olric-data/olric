@@ -919,3 +919,104 @@ func TestKVStore_MakeTable_RecycledTableReuse(t *testing.T) {
 	require.LessOrEqual(t, len(k.tables), tableCountBefore+1,
 		"Expected recycled table reuse to limit table growth")
 }
+
+func TestKVStore_EvictTable_PutRawError(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	timestamp := time.Now().UnixNano()
+	// Insert entries with large values to fill multiple tables.
+	for i := 0; i < 1500; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetTTL(int64(i))
+		e.SetValue([]byte(fmt.Sprintf("%01000d", i)))
+		e.SetTimestamp(timestamp)
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+
+	// Delete enough entries to exceed the 40% garbage ratio on a table.
+	for i := 0; i < 750; i++ {
+		hkey := xxhash.Sum64([]byte(bkey(i)))
+		err := s.Delete(hkey)
+		require.NoError(t, err)
+	}
+
+	k := s.(*KVStore)
+
+	// Shrink tableSize to force PutRaw to return ErrEntryTooLarge during eviction.
+	k.tableSize = 1
+
+	done, err := k.Compaction()
+	require.False(t, done)
+	require.Error(t, err)
+	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
+}
+
+func TestKVStore_Compaction_NoTables(t *testing.T) {
+	k, err := New(nil)
+	require.NoError(t, err)
+
+	err = k.Start()
+	require.NoError(t, err)
+
+	// No tables exist — Compaction should return done=true with no error.
+	done, compactionErr := k.Compaction()
+	require.NoError(t, compactionErr)
+	require.True(t, done)
+}
+
+func TestKVStore_IsCompactionOK_ExactThreshold(t *testing.T) {
+	// Each entry: key=1 byte + value=70 bytes + metadata=29 bytes = 100 bytes.
+	// Table size 1000 → 9 entries fit. Deleting N entries → garbage = N*100.
+	// maxGarbageRatio = 0.40, threshold = 1000 * 0.40 = 400.
+
+	tests := []struct {
+		name        string
+		deleteCount int
+		expected    bool
+	}{
+		{"ExactBoundary", 4, true},  // garbage=400, ratio=0.40 → >=0.40 → true
+		{"BelowBoundary", 3, false}, // garbage=300, ratio=0.30 → <0.40 → false
+		{"AboveBoundary", 5, true},  // garbage=500, ratio=0.50 → >=0.40 → true
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			config := DefaultConfig()
+			config.Add("tableSize", uint64(1000))
+			s := testKVStore(t, config)
+
+			timestamp := time.Now().UnixNano()
+			// Insert 9 entries of exactly 100 bytes each.
+			for i := 0; i < 9; i++ {
+				e := entry.New()
+				e.SetKey(fmt.Sprintf("%01d", i))            // 1-byte key
+				e.SetValue([]byte(fmt.Sprintf("%070d", i))) // 70-byte value
+				e.SetTimestamp(timestamp)
+				hkey := xxhash.Sum64([]byte(e.Key()))
+				err := s.Put(hkey, e)
+				require.NoError(t, err)
+			}
+
+			// Delete entries to reach desired garbage level.
+			for i := 0; i < tc.deleteCount; i++ {
+				hkey := xxhash.Sum64([]byte(fmt.Sprintf("%01d", i)))
+				err := s.Delete(hkey)
+				require.NoError(t, err)
+			}
+
+			k := s.(*KVStore)
+			tb := k.tables[0]
+
+			stats := tb.Stats()
+			require.Equal(t, uint64(1000), stats.Allocated)
+			require.Equal(t, uint64(tc.deleteCount*100), stats.Garbage,
+				"Expected garbage = %d", tc.deleteCount*100)
+
+			result := k.isCompactionOK(tb)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
