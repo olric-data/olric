@@ -708,3 +708,214 @@ func TestKVStore_New_NegativeTableSize(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "tableSize cannot be negative")
 }
+
+func TestKVStore_Start_NilConfig(t *testing.T) {
+	kv, err := New(nil)
+	require.NoError(t, err)
+
+	kv.SetConfig(nil)
+	err = kv.Start()
+	require.Error(t, err)
+	require.Equal(t, "config cannot be nil", err.Error())
+}
+
+func TestKVStore_PutRaw_ErrEntryTooLarge(t *testing.T) {
+	c := DefaultConfig()
+	c.Add("tableSize", 1024)
+	s := testKVStore(t, c)
+
+	value := make([]byte, 2048)
+	hkey := xxhash.Sum64([]byte("key"))
+	err := s.PutRaw(hkey, value)
+	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
+}
+
+func TestKVStore_GetRaw_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	raw, err := s.GetRaw(hkey)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+	require.Nil(t, raw)
+}
+
+func TestKVStore_GetTTL_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	ttl, err := s.GetTTL(hkey)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+	require.Equal(t, int64(0), ttl)
+}
+
+func TestKVStore_GetLastAccess_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	lastAccess, err := s.GetLastAccess(hkey)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+	require.Equal(t, int64(0), lastAccess)
+}
+
+func TestKVStore_GetKey_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	key, err := s.GetKey(hkey)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+	require.Equal(t, "", key)
+}
+
+func TestKVStore_Delete_NonExistentKey(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	err := s.Delete(hkey)
+	require.NoError(t, err)
+}
+
+func TestKVStore_UpdateTTL_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	e := entry.New()
+	e.SetTTL(100)
+	e.SetTimestamp(time.Now().UnixNano())
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	err := s.UpdateTTL(hkey, e)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+}
+
+func TestKVStore_Check_KeyNotFound(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	hkey := xxhash.Sum64([]byte("nonexistent"))
+	require.False(t, s.Check(hkey))
+}
+
+func TestKVStore_RangeHKey(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	expected := make(map[uint64]struct{})
+	for i := 0; i < 100; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetValue(bval(i))
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+		expected[hkey] = struct{}{}
+	}
+
+	collected := make(map[uint64]struct{})
+	s.RangeHKey(func(hkey uint64) bool {
+		collected[hkey] = struct{}{}
+		return true
+	})
+
+	require.Equal(t, expected, collected)
+}
+
+func TestKVStore_SetConfig(t *testing.T) {
+	kv, err := New(nil)
+	require.NoError(t, err)
+
+	newConfig := storage.NewConfig(nil)
+	newConfig.Add("tableSize", uint64(2048))
+	newConfig.Add("maxIdleTableTimeout", defaultMaxIdleTableTimeout)
+
+	kv.SetConfig(newConfig)
+
+	raw, err := kv.config.Get("tableSize")
+	require.NoError(t, err)
+	require.Equal(t, uint64(2048), raw)
+}
+
+func TestKVStore_Fork_CustomConfig(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	customConfig := DefaultConfig()
+	customConfig.Add("tableSize", uint64(2048))
+
+	child, err := s.Fork(customConfig)
+	require.NoError(t, err)
+
+	childKV := child.(*KVStore)
+	require.Equal(t, uint64(2048), childKV.tableSize)
+	require.Equal(t, 1, len(childKV.tables))
+	require.Equal(t, 0, child.Stats().Length)
+}
+
+func TestKVStore_MakeTable_RecycledTableReuse(t *testing.T) {
+	s := testKVStore(t, nil)
+
+	timestamp := time.Now().UnixNano()
+	// Insert entries with large values to fill multiple tables (default 1MB each).
+	for i := 0; i < 1500; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetTTL(int64(i))
+		e.SetValue([]byte(fmt.Sprintf("%01000d", i)))
+		e.SetTimestamp(timestamp)
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+
+	// Delete enough entries to exceed the 40% garbage ratio on a table.
+	for i := 0; i < 750; i++ {
+		hkey := xxhash.Sum64([]byte(bkey(i)))
+		err := s.Delete(hkey)
+		require.NoError(t, err)
+	}
+
+	// Run compaction until done to produce RecycledState tables.
+	for {
+		done, err := s.Compaction()
+		require.NoError(t, err)
+		if done {
+			break
+		}
+	}
+
+	k := s.(*KVStore)
+
+	// Verify at least one recycled table exists.
+	var recycledFound bool
+	for _, tb := range k.tables {
+		if tb.State() == table.RecycledState {
+			recycledFound = true
+			break
+		}
+	}
+	require.True(t, recycledFound, "Expected at least one RecycledState table after compaction")
+
+	tableCountBefore := len(k.tables)
+
+	// Fill the current writable table to trigger makeTable via putWithRetry.
+	startIdx := 2000
+	for i := startIdx; i < startIdx+1500; i++ {
+		e := entry.New()
+		e.SetKey(bkey(i))
+		e.SetTTL(int64(i))
+		e.SetValue([]byte(fmt.Sprintf("%01000d", i)))
+		e.SetTimestamp(timestamp)
+		hkey := xxhash.Sum64([]byte(e.Key()))
+		err := s.Put(hkey, e)
+		require.NoError(t, err)
+	}
+
+	// The recycled table should have been reused: no RecycledState tables remain.
+	for _, tb := range k.tables {
+		require.NotEqual(t, table.RecycledState, tb.State(),
+			"Expected no RecycledState tables after reuse")
+	}
+
+	// The last table must be writable.
+	lastTable := k.tables[len(k.tables)-1]
+	require.Equal(t, table.ReadWriteState, lastTable.State())
+
+	// Table count should not have grown beyond what's needed (recycled table was reused).
+	require.LessOrEqual(t, len(k.tables), tableCountBefore+1,
+		"Expected recycled table reuse to limit table growth")
+}
