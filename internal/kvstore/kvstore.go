@@ -204,12 +204,9 @@ func (k *KVStore) NewEntry() storage.Entry {
 	return entry.New()
 }
 
-// PutRaw sets the raw value for the given key.
-func (k *KVStore) PutRaw(hkey uint64, value []byte) error {
-	if uint64(len(value)) > k.tableSize {
-		return storage.ErrEntryTooLarge
-	}
-
+// putWithRetry ensures at least one table exists and retries the given write
+// function on a new table when the current one runs out of space.
+func (k *KVStore) putWithRetry(writeFn func(t *table.Table) error) error {
 	if len(k.tables) == 0 {
 		if err := k.makeTable(); err != nil {
 			return err
@@ -219,10 +216,9 @@ func (k *KVStore) PutRaw(hkey uint64, value []byte) error {
 	for {
 		// Get the last value, storage only calls Put on the last created table.
 		t := k.tables[len(k.tables)-1]
-		err := t.PutRaw(hkey, value)
+		err := writeFn(t)
 		if errors.Is(err, table.ErrNotEnoughSpace) {
-			err := k.makeTable()
-			if err != nil {
+			if err := k.makeTable(); err != nil {
 				return err
 			}
 			// try again
@@ -232,10 +228,19 @@ func (k *KVStore) PutRaw(hkey uint64, value []byte) error {
 			return err
 		}
 		// everything is ok
-		break
+		return nil
+	}
+}
+
+// PutRaw sets the raw value for the given key.
+func (k *KVStore) PutRaw(hkey uint64, value []byte) error {
+	if uint64(len(value)) > k.tableSize {
+		return storage.ErrEntryTooLarge
 	}
 
-	return nil
+	return k.putWithRetry(func(t *table.Table) error {
+		return t.PutRaw(hkey, value)
+	})
 }
 
 // Put sets the value for the given key. It overwrites any previous value for that key
@@ -244,33 +249,9 @@ func (k *KVStore) Put(hkey uint64, value storage.Entry) error {
 		return storage.ErrEntryTooLarge
 	}
 
-	if len(k.tables) == 0 {
-		if err := k.makeTable(); err != nil {
-			return err
-		}
-	}
-
-	for {
-		// Get the last value, storage only calls Put on the last created table.
-		t := k.tables[len(k.tables)-1]
-		err := t.Put(hkey, value)
-		if errors.Is(err, table.ErrNotEnoughSpace) {
-			err := k.makeTable()
-			if err != nil {
-				return err
-			}
-			// try again
-			continue
-		}
-		if err != nil {
-			return err
-		}
-
-		// everything is ok
-		break
-	}
-
-	return nil
+	return k.putWithRetry(func(t *table.Table) error {
+		return t.Put(hkey, value)
+	})
 }
 
 // GetRaw extracts encoded value for the given hkey. This is useful for merging tables.
@@ -479,7 +460,7 @@ func (k *KVStore) RangeHKey(f func(hkey uint64) bool) {
 
 func (k *KVStore) findCoefficient(coefficient uint64) (uint64, error) {
 	var sortedCoefficients []uint64
-	for newCf, _ := range k.tablesByCoefficient {
+	for newCf := range k.tablesByCoefficient {
 		sortedCoefficients = append(sortedCoefficients, newCf)
 	}
 	sort.Slice(sortedCoefficients, func(i, j int) bool { return sortedCoefficients[i] < sortedCoefficients[j] })
