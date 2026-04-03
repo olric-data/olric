@@ -136,4 +136,15 @@ type Engine interface {
 	// Destroy stops an online storage engine instance and frees allocated resources.
 	// It should not be possible to reuse a destroyed storage engine.
 	Destroy() error
+
+	// Snapshot writes a point-in-time snapshot to dir with an auto-generated ObjectID.
+	// Recycled tables are skipped. The caller is responsible for holding any necessary locks.
+	Snapshot(dir string) error
+
+	// Restore loads the latest snapshot from dir, replacing the engine's current state.
+	// The caller is responsible for holding any necessary locks.
+	Restore(dir string) error
+
+	// DeleteSnapshot removes a specific snapshot (manifest + data files) from dir.
+	DeleteSnapshot(dir string, id string) error
 }
