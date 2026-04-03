@@ -295,3 +295,61 @@ func TestBalance_Backup_Move(t *testing.T) {
 		require.Equal(t, []discovery.Member{b2.rt.This()}, r[partID].Owners)
 	}
 }
+
+func TestScanPartition_SkipsEmptyFragments(t *testing.T) {
+	cluster := newMockCluster(t)
+	defer cluster.shutdown()
+
+	e1 := newTestEnvironment(nil)
+	b1 := cluster.addNode(e1)
+
+	c := e1.Get("config").(*config.Config)
+	primary := e1.Get(strings.ToLower(partitions.PRIMARY.String())).(*partitions.Partitions)
+
+	// Pick partition 0 and store multiple fragments: some filled, some empty.
+	// Using enough fragments makes the test statistically near-certain to catch
+	// a bug where returning false from Range stops iteration on empty fragments.
+	part := primary.PartitionByID(0)
+
+	var filledFragments []*mockfragment.MockFragment
+	for i := 0; i < 5; i++ {
+		f := mockfragment.New()
+		f.Put(fmt.Sprintf("key-%d", i), i) // Guarantee non-empty
+		part.Map().Store(fmt.Sprintf("dmap.filled-%d", i), f)
+		filledFragments = append(filledFragments, f)
+	}
+	for i := 0; i < 5; i++ {
+		f := mockfragment.New() // Empty fragment (no Fill/Put)
+		part.Map().Store(fmt.Sprintf("dmap.empty-%d", i), f)
+	}
+
+	e2 := newTestEnvironment(nil)
+	b2 := cluster.addNode(e2)
+
+	err := testutil.TryWithInterval(10, 100*time.Millisecond, func() error {
+		if !b2.rt.IsBootstrapped() {
+			return errors.New("the second node cannot be bootstrapped")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Directly call scanPartition to test that empty fragments don't stop iteration.
+	sign := b1.rt.Signature()
+	owner := part.Owner()
+	require.False(t, owner.CompareByName(discovery.Member{}), "partition 0 should have an owner")
+
+	b1.scanPartition(sign, part, owner)
+
+	// Verify all filled fragments were moved.
+	for i, f := range filledFragments {
+		result := f.Result()
+		require.NotEmpty(t, result, "filled fragment %d should have been moved", i)
+		require.NotNil(t, result[partitions.PRIMARY])
+		r := result[partitions.PRIMARY]
+		require.NotNil(t, r[uint64(0)])
+		require.Equal(t, fmt.Sprintf("filled-%d", i), r[uint64(0)].Name)
+	}
+
+	_ = c // use config
+}
