@@ -38,4 +38,9 @@ func (s *Service) RegisterHandlers() {
 	s.server.ServeMux().HandleFunc(protocol.DMap.LockLease, s.lockLeaseCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.PLockLease, s.plockLeaseCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.Internal.MoveFragment, s.moveFragmentCommandHandler)
+
+	// Redis compatibility commands
+	s.server.ServeMux().HandleFunc(protocol.Redis.Set, s.redisSetCommandHandler)
+	s.server.ServeMux().HandleFunc(protocol.Redis.Get, s.redisGetCommandHandler)
+	s.server.ServeMux().HandleFunc(protocol.Redis.Del, s.redisDelCommandHandler)
 }

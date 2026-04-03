@@ -105,6 +105,18 @@ type PubSubCommands struct {
 	PubSubNumsub    string
 }
 
+type RedisCommands struct {
+	Set string
+	Get string
+	Del string
+}
+
+var Redis = &RedisCommands{
+	Set: "set",
+	Get: "get",
+	Del: "del",
+}
+
 var PubSub = &PubSubCommands{
 	PubSub:          "pubsub",
 	Publish:         "publish",
