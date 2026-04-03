@@ -22,4 +22,5 @@
 # OSX creates this
 .DS_Store
 
+.claude/
 CLAUDE.md
