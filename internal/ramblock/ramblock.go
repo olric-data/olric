@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /*
-Package ramblock implements a GC friendly in-memory storage engine by using
+Package ramblock implements a GC-friendly in-memory storage engine by using
 built-in maps and byte slices. It also supports compaction.
 */
 package ramblock
