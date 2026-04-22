@@ -641,6 +641,167 @@ func TestEmbeddedClient_DMap_Put_PX_With_NX(t *testing.T) {
 	assert.NotZero(t, gr.TTL())
 }
 
+// TestEmbeddedClient_DMap_CompareAndSwap_Standalone exercises basic CAS flow on
+// a single-node embedded cluster.
+func TestEmbeddedClient_DMap_CompareAndSwap_Standalone(t *testing.T) {
+	cluster := newTestOlricCluster(t)
+	db := cluster.addMember(t)
+
+	e := db.NewEmbeddedClient()
+	dm, err := e.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// NX-style: insert when absent.
+	swapped, current, err := dm.CompareAndSwap(ctx, "key", nil, "v1")
+	require.NoError(t, err)
+	require.True(t, swapped)
+	require.Nil(t, current)
+
+	// NX-style on existing key fails.
+	swapped, current, err = dm.CompareAndSwap(ctx, "key", nil, "v2")
+	require.NoError(t, err)
+	require.False(t, swapped)
+	require.NotNil(t, current)
+	v, err := current.String()
+	require.NoError(t, err)
+	require.Equal(t, "v1", v)
+
+	// Proper update using observed raw bytes.
+	gr, err := dm.Get(ctx, "key")
+	require.NoError(t, err)
+	swapped, current, err = dm.CompareAndSwap(ctx, "key", gr.RawValue(), "v2")
+	require.NoError(t, err)
+	require.True(t, swapped)
+	require.Nil(t, current)
+
+	gr, err = dm.Get(ctx, "key")
+	require.NoError(t, err)
+	v, err = gr.String()
+	require.NoError(t, err)
+	require.Equal(t, "v2", v)
+}
+
+// TestEmbeddedClient_DMap_CompareAndSwap_CrossNode validates that a CAS from
+// one node is immediately observed by other nodes and that mismatches are
+// reported correctly. This is the core cluster-wide CAS contract the gateway
+// relies on.
+func TestEmbeddedClient_DMap_CompareAndSwap_CrossNode(t *testing.T) {
+	cluster := newTestOlricCluster(t)
+	db0 := cluster.addMember(t)
+	db1 := cluster.addMember(t)
+
+	// Give the cluster a brief moment to stabilize.
+	time.Sleep(250 * time.Millisecond)
+
+	e0 := db0.NewEmbeddedClient()
+	dm0, err := e0.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	e1 := db1.NewEmbeddedClient()
+	dm1, err := e1.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Node 0 inserts.
+	swapped, _, err := dm0.CompareAndSwap(ctx, "shared", nil, "from-node-0")
+	require.NoError(t, err)
+	require.True(t, swapped)
+
+	// Node 1 reads and sees it.
+	gr, err := dm1.Get(ctx, "shared")
+	require.NoError(t, err)
+	v, err := gr.String()
+	require.NoError(t, err)
+	require.Equal(t, "from-node-0", v)
+
+	// Node 1 does a conflicting CAS with stale nil-expected; must fail and
+	// return the current value.
+	swapped, current, err := dm1.CompareAndSwap(ctx, "shared", nil, "from-node-1")
+	require.NoError(t, err)
+	require.False(t, swapped)
+	require.NotNil(t, current)
+	v, err = current.String()
+	require.NoError(t, err)
+	require.Equal(t, "from-node-0", v)
+
+	// Node 1 retries with the observed bytes and wins.
+	swapped, _, err = dm1.CompareAndSwap(ctx, "shared", gr.RawValue(), "from-node-1")
+	require.NoError(t, err)
+	require.True(t, swapped)
+
+	// Node 0 sees the new value.
+	gr, err = dm0.Get(ctx, "shared")
+	require.NoError(t, err)
+	v, err = gr.String()
+	require.NoError(t, err)
+	require.Equal(t, "from-node-1", v)
+}
+
+// TestEmbeddedClient_DMap_CompareAndSwap_ConcurrentTwoNodes hammers the same
+// key with N goroutines from each of two nodes, each doing a read-modify-write
+// via CAS-with-retry. Final value must equal the exact number of increments
+// — proving CAS serializes correctly across nodes.
+func TestEmbeddedClient_DMap_CompareAndSwap_ConcurrentTwoNodes(t *testing.T) {
+	cluster := newTestOlricCluster(t)
+	db0 := cluster.addMember(t)
+	db1 := cluster.addMember(t)
+
+	time.Sleep(250 * time.Millisecond)
+
+	e0 := db0.NewEmbeddedClient()
+	dm0, err := e0.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	e1 := db1.NewEmbeddedClient()
+	dm1, err := e1.NewDMap("mydmap")
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Seed.
+	require.NoError(t, dm0.Put(ctx, "counter", 0))
+	time.Sleep(50 * time.Millisecond)
+
+	const perSide = 50
+	var wg errgroup.Group
+
+	increment := func(dm DMap) error {
+		for i := 0; i < perSide; i++ {
+			for {
+				gr, err := dm.Get(ctx, "counter")
+				if err != nil {
+					return fmt.Errorf("Get: %w", err)
+				}
+				cur, err := gr.Int()
+				if err != nil {
+					return fmt.Errorf("Int: %w", err)
+				}
+				swapped, _, err := dm.CompareAndSwap(ctx, "counter", gr.RawValue(), cur+1)
+				if err != nil {
+					return fmt.Errorf("CAS: %w", err)
+				}
+				if swapped {
+					break
+				}
+			}
+		}
+		return nil
+	}
+
+	wg.Go(func() error { return increment(dm0) })
+	wg.Go(func() error { return increment(dm1) })
+	require.NoError(t, wg.Wait())
+
+	gr, err := dm0.Get(ctx, "counter")
+	require.NoError(t, err)
+	final, err := gr.Int()
+	require.NoError(t, err)
+	require.Equal(t, 2*perSide, final, "cross-node CAS-retry must produce lossless increments")
+}
+
 func TestEmbeddedClient_Issue263(t *testing.T) {
 	initNumRoutines := runtime.NumGoroutine()
 

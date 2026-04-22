@@ -227,6 +227,29 @@ func (dm *EmbeddedDMap) GetPut(ctx context.Context, key string, value interface{
 	}, nil
 }
 
+// CompareAndSwap atomically replaces the value at key with newValue iff the
+// current raw value bytes equal expected. See DMap.CompareAndSwap for details.
+func (dm *EmbeddedDMap) CompareAndSwap(
+	ctx context.Context,
+	key string,
+	expected []byte,
+	newValue interface{},
+	options ...PutOption,
+) (bool, *GetResponse, error) {
+	var pc dmap.PutConfig
+	for _, opt := range options {
+		opt(&pc)
+	}
+	swapped, current, err := dm.dm.CompareAndSwap(ctx, key, expected, newValue, &pc)
+	if err != nil {
+		return false, nil, convertDMapError(err)
+	}
+	if current == nil {
+		return swapped, nil, nil
+	}
+	return swapped, &GetResponse{entry: current}, nil
+}
+
 // Decr atomically decrements the key by delta. The return value is the new value
 // after being decremented or an error.
 func (dm *EmbeddedDMap) Decr(ctx context.Context, key string, delta int) (int, error) {

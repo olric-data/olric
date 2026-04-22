@@ -255,6 +255,81 @@ func (dm *ClusterDMap) Decr(ctx context.Context, key string, delta int) (int, er
 	return int(res), nil
 }
 
+// CompareAndSwap atomically replaces the value at key with newValue iff the
+// current raw value bytes equal expected. See DMap.CompareAndSwap for details.
+func (dm *ClusterDMap) CompareAndSwap(
+	ctx context.Context,
+	key string,
+	expected []byte,
+	newValue interface{},
+	options ...PutOption,
+) (bool, *GetResponse, error) {
+	rc, err := dm.clusterClient.smartPick(dm.name, key)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if newValue == nil {
+		newValue = struct{}{}
+	}
+
+	valueBuf := pool.Get()
+	defer pool.Put(valueBuf)
+
+	enc := resp.New(valueBuf)
+	if err := enc.Encode(newValue); err != nil {
+		return false, nil, err
+	}
+
+	var pc dmap.PutConfig
+	for _, opt := range options {
+		opt(&pc)
+	}
+
+	casCmd := protocol.NewCompareAndSwap(dm.name, key, expected, valueBuf.Bytes())
+	switch {
+	case pc.HasEX:
+		casCmd.SetEX(pc.EX.Seconds())
+	case pc.HasPX:
+		casCmd.SetPX(pc.PX.Milliseconds())
+	case pc.HasEXAT:
+		casCmd.SetEXAT(pc.EXAT.Seconds())
+	case pc.HasPXAT:
+		casCmd.SetPXAT(pc.PXAT.Milliseconds())
+	}
+
+	cmd := casCmd.Command(ctx)
+	if err := rc.Process(ctx, cmd); err != nil {
+		return false, nil, processProtocolError(err)
+	}
+	if err := cmd.Err(); err != nil {
+		return false, nil, processProtocolError(err)
+	}
+
+	items, err := cmd.Slice()
+	if err != nil {
+		return false, nil, processProtocolError(err)
+	}
+	if len(items) != 2 {
+		return false, nil, fmt.Errorf("unexpected CAS reply length %d", len(items))
+	}
+	swappedInt, ok := items[0].(int64)
+	if !ok {
+		return false, nil, fmt.Errorf("unexpected CAS reply type for swapped: %T", items[0])
+	}
+	swapped := swappedInt == 1
+	if items[1] == nil {
+		return swapped, nil, nil
+	}
+	raw, ok := items[1].(string)
+	if !ok {
+		return false, nil, fmt.Errorf("unexpected CAS reply type for current: %T", items[1])
+	}
+	e := dm.newEntry()
+	e.Decode([]byte(raw))
+	return swapped, &GetResponse{entry: e}, nil
+}
+
 // GetPut atomically sets the key to value and returns the old value stored at a key. It returns nil if there is no
 // previous value.
 func (dm *ClusterDMap) GetPut(ctx context.Context, key string, value interface{}) (*GetResponse, error) {

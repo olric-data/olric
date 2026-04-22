@@ -16,6 +16,7 @@ package dmap
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/olric-data/olric/internal/protocol"
 	"github.com/tidwall/redcon"
@@ -94,6 +95,60 @@ func (s *Service) getPutCommandHandler(conn redcon.Conn, cmd redcon.Command) {
 	}
 
 	conn.WriteBulk(old.Value())
+}
+
+func (s *Service) compareAndSwapCommandHandler(conn redcon.Conn, cmd redcon.Command) {
+	casCmd, err := protocol.ParseCompareAndSwapCommand(cmd)
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return
+	}
+
+	dm, err := s.getOrCreateDMap(casCmd.DMap)
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return
+	}
+
+	var pc PutConfig
+	switch {
+	case casCmd.EX != 0:
+		pc.HasEX = true
+		pc.EX = time.Duration(casCmd.EX * float64(time.Second))
+	case casCmd.PX != 0:
+		pc.HasPX = true
+		pc.PX = time.Duration(casCmd.PX * int64(time.Millisecond))
+	case casCmd.EXAT != 0:
+		pc.HasEXAT = true
+		pc.EXAT = time.Duration(casCmd.EXAT * float64(time.Second))
+	case casCmd.PXAT != 0:
+		pc.HasPXAT = true
+		pc.PXAT = time.Duration(casCmd.PXAT * int64(time.Millisecond))
+	}
+
+	e := newEnv(s.ctx)
+	e.dmap = casCmd.DMap
+	e.key = casCmd.Key
+	e.value = casCmd.Value
+	e.putConfig = &pc
+
+	swapped, current, err := dm.compareAndSwap(e, casCmd.Expected)
+	if err != nil {
+		protocol.WriteError(conn, err)
+		return
+	}
+
+	conn.WriteArray(2)
+	if swapped {
+		conn.WriteInt(1)
+	} else {
+		conn.WriteInt(0)
+	}
+	if current == nil {
+		conn.WriteNull()
+	} else {
+		conn.WriteBulk(current.Encode())
+	}
 }
 
 func (s *Service) incrByFloatCommandHandler(conn redcon.Conn, cmd redcon.Command) {

@@ -759,6 +759,165 @@ func ParseGetPutCommand(cmd redcon.Command) (*GetPut, error) {
 	return g, nil
 }
 
+// CompareAndSwap is a conditional write: replace the value stored at key with
+// Value iff the currently stored raw value bytes equal Expected. A nil/empty
+// Expected signals "compare against key non-existence" (NX semantics for CAS).
+// Stored values will always be RESP-encoded and non-empty in practice, so
+// zero-length is a safe sentinel.
+//
+// Wire format:
+//
+//	DM.CAS <dmap> <key> <expected> <value> [EX|PX|EXAT|PXAT <ttl>]
+//
+// Response is a 2-element array:
+//
+//	[1, nil]         -> swapped, no current value returned
+//	[0, <bytes>]     -> mismatch, current encoded entry bytes returned
+//	[0, nil]         -> mismatch, key currently absent
+type CompareAndSwap struct {
+	DMap     string
+	Key      string
+	Expected []byte
+	Value    []byte
+	EX       float64
+	PX       int64
+	EXAT     float64
+	PXAT     int64
+}
+
+func NewCompareAndSwap(dmap, key string, expected, value []byte) *CompareAndSwap {
+	return &CompareAndSwap{
+		DMap:     dmap,
+		Key:      key,
+		Expected: expected,
+		Value:    value,
+	}
+}
+
+func (c *CompareAndSwap) SetEX(ex float64) *CompareAndSwap {
+	c.EX = ex
+	return c
+}
+
+func (c *CompareAndSwap) SetPX(px int64) *CompareAndSwap {
+	c.PX = px
+	return c
+}
+
+func (c *CompareAndSwap) SetEXAT(exat float64) *CompareAndSwap {
+	c.EXAT = exat
+	return c
+}
+
+func (c *CompareAndSwap) SetPXAT(pxat int64) *CompareAndSwap {
+	c.PXAT = pxat
+	return c
+}
+
+func (c *CompareAndSwap) Command(ctx context.Context) *redis.Cmd {
+	var args []interface{}
+	args = append(args, DMap.CompareAndSwap)
+	args = append(args, c.DMap)
+	args = append(args, c.Key)
+	// Empty []byte is the NX sentinel on the wire.
+	if c.Expected == nil {
+		args = append(args, []byte{})
+	} else {
+		args = append(args, c.Expected)
+	}
+	args = append(args, c.Value)
+
+	if c.EX != 0 {
+		args = append(args, "EX")
+		args = append(args, c.EX)
+	}
+
+	if c.PX != 0 {
+		args = append(args, "PX")
+		args = append(args, c.PX)
+	}
+
+	if c.EXAT != 0 {
+		args = append(args, "EXAT")
+		args = append(args, c.EXAT)
+	}
+
+	if c.PXAT != 0 {
+		args = append(args, "PXAT")
+		args = append(args, c.PXAT)
+	}
+
+	return redis.NewCmd(ctx, args...)
+}
+
+func ParseCompareAndSwapCommand(cmd redcon.Command) (*CompareAndSwap, error) {
+	if len(cmd.Args) < 5 {
+		return nil, errWrongNumber(cmd.Args)
+	}
+
+	c := &CompareAndSwap{
+		DMap:  util.BytesToString(cmd.Args[1]),
+		Key:   util.BytesToString(cmd.Args[2]),
+		Value: cmd.Args[4],
+	}
+
+	// Empty bytes on the wire means "compare against absent". Non-empty means
+	// "compare against these raw entry value bytes".
+	if raw := cmd.Args[3]; len(raw) > 0 {
+		c.Expected = raw
+	}
+
+	args := cmd.Args[5:]
+	for len(args) > 0 {
+		switch arg := strings.ToUpper(util.BytesToString(args[0])); arg {
+		case "PX":
+			if len(args) < 2 {
+				return nil, fmt.Errorf("%w: PX needs a numerical argument", ErrInvalidArgument)
+			}
+			px, err := strconv.ParseInt(util.BytesToString(args[1]), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			c.SetPX(px)
+			args = args[2:]
+		case "EX":
+			if len(args) < 2 {
+				return nil, fmt.Errorf("%w: EX needs a numerical argument", ErrInvalidArgument)
+			}
+			ex, err := strconv.ParseFloat(util.BytesToString(args[1]), 64)
+			if err != nil {
+				return nil, err
+			}
+			c.SetEX(ex)
+			args = args[2:]
+		case "EXAT":
+			if len(args) < 2 {
+				return nil, fmt.Errorf("%w: EXAT needs a numerical argument", ErrInvalidArgument)
+			}
+			exat, err := strconv.ParseFloat(util.BytesToString(args[1]), 64)
+			if err != nil {
+				return nil, err
+			}
+			c.SetEXAT(exat)
+			args = args[2:]
+		case "PXAT":
+			if len(args) < 2 {
+				return nil, fmt.Errorf("%w: PXAT needs a numerical argument", ErrInvalidArgument)
+			}
+			pxat, err := strconv.ParseInt(util.BytesToString(args[1]), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			c.SetPXAT(pxat)
+			args = args[2:]
+		default:
+			return nil, fmt.Errorf("%w: %s", ErrInvalidArgument, arg)
+		}
+	}
+
+	return c, nil
+}
+
 type IncrByFloat struct {
 	DMap  string
 	Key   string

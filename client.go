@@ -182,6 +182,27 @@ type DMap interface {
 	// previous value.
 	GetPut(ctx context.Context, key string, value interface{}) (*GetResponse, error)
 
+	// CompareAndSwap atomically replaces the value stored at key with newValue
+	// iff the raw value bytes currently stored equal expected. A nil or empty
+	// expected argument means "compare against key non-existence" — the swap
+	// succeeds only if the key does not currently exist.
+	//
+	// On success it returns (true, nil, nil) and the new value is stored. On
+	// mismatch it returns (false, current, nil) where current is the authoritative
+	// present value (or nil if the key does not exist), allowing the caller to
+	// retry without another Get. TTL options behave exactly like Put.
+	//
+	// Unlike GetPut/Incr, CompareAndSwap serializes cluster-wide: the fragment
+	// lock and atomic-key lock are both taken on the partition owner, and the
+	// operation is dispatched there regardless of which node the caller runs on.
+	CompareAndSwap(
+		ctx context.Context,
+		key string,
+		expected []byte,
+		newValue interface{},
+		options ...PutOption,
+	) (swapped bool, current *GetResponse, err error)
+
 	// IncrByFloat atomically increments the key by delta. The return value is the new value
 	// after being incremented or an error.
 	IncrByFloat(ctx context.Context, key string, delta float64) (float64, error)

@@ -32,6 +32,7 @@ func (s *Service) RegisterHandlers() {
 	s.server.ServeMux().HandleFunc(protocol.DMap.Incr, s.incrCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.Decr, s.decrCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.GetPut, s.getPutCommandHandler)
+	s.server.ServeMux().HandleFunc(protocol.DMap.CompareAndSwap, s.compareAndSwapCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.IncrByFloat, s.incrByFloatCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.Lock, s.lockCommandHandler)
 	s.server.ServeMux().HandleFunc(protocol.DMap.Unlock, s.unlockCommandHandler)

@@ -195,3 +195,16 @@ func (g *GetResponse) TTL() int64 {
 func (g *GetResponse) Timestamp() int64 {
 	return g.entry.Timestamp()
 }
+
+// RawValue returns the raw RESP-encoded value bytes as stored by the engine
+// (not the decoded user value). The returned slice is the exact byte sequence
+// that a CompareAndSwap call will compare against; pass it back as `expected`
+// to retry a conditional write without re-encoding.
+//
+// Returns nil if the entry is nil (key not found).
+func (g *GetResponse) RawValue() []byte {
+	if g.entry == nil {
+		return nil
+	}
+	return g.entry.Value()
+}
