@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"sync"
@@ -164,8 +165,15 @@ func (f *FutureGet) Result() (*GetResponse, error) {
 		if cmd.Err() != nil {
 			return nil, processProtocolError(cmd.Err())
 		}
+		value, nilValue, err := pipelineStringValue(cmd)
+		if err != nil {
+			return nil, err
+		}
+		if nilValue {
+			return nil, ErrKeyNotFound
+		}
 		stringCmd := redis.NewStringCmd(context.Background(), cmd.Args()...)
-		stringCmd.SetVal(cmd.(*redis.Cmd).Val().(string))
+		stringCmd.SetVal(value)
 		return f.dp.dm.makeGetResponse(stringCmd)
 	default:
 		return nil, ErrNotReady
@@ -392,8 +400,15 @@ func (f *FutureGetPut) Result() (*GetResponse, error) {
 		if cmd.Err() != nil {
 			return nil, processProtocolError(cmd.Err())
 		}
+		value, nilValue, err := pipelineStringValue(cmd)
+		if err != nil {
+			return nil, err
+		}
+		if nilValue {
+			return nil, nil
+		}
 		stringCmd := redis.NewStringCmd(context.Background(), cmd.Args()...)
-		stringCmd.SetVal(cmd.(*redis.Cmd).Val().(string))
+		stringCmd.SetVal(value)
 		return f.dp.dm.makeGetResponse(stringCmd)
 	default:
 		return nil, ErrNotReady
@@ -644,4 +659,21 @@ func putPipelineCmdsIntoPool(cmds []redis.Cmder) {
 	}
 	cmds = cmds[:0]
 	pipelineCmdPool.Put(cmds)
+}
+
+func pipelineStringValue(cmd redis.Cmder) (string, bool, error) {
+	redisCmd, ok := cmd.(*redis.Cmd)
+	if !ok {
+		return "", false, fmt.Errorf("unexpected pipeline command type %T", cmd)
+	}
+
+	value := redisCmd.Val()
+	if value == nil {
+		return "", true, nil
+	}
+	stringValue, ok := value.(string)
+	if !ok {
+		return "", false, fmt.Errorf("unexpected pipeline command value type %T", value)
+	}
+	return stringValue, false, nil
 }
