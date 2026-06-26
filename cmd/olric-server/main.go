@@ -80,7 +80,7 @@ func main() {
 	f.StringVar(&args.config, "c", DefaultConfigFile, "")
 
 	if err := f.Parse(os.Args[1:]); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, fmt.Sprintf("parsing error: %v\n", err))
+		_, _ = fmt.Fprintf(os.Stderr, "parsing error: %v\n", err)
 		usage()
 		os.Exit(1)
 	}
