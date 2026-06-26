@@ -82,6 +82,7 @@ It's good at distributed caching and publish/subscribe messaging.
       * [DM.INCR](#dmincr)
       * [DM.DECR](#dmdecr)
       * [DM.GETPUT](#dmgetput)
+      * [DM.CAS](#dmcas)
       * [DM.INCRBYFLOAT](#dmincrbyfloat)
     * [Locking](#locking)
       * [DM.LOCK](#dmlock)
@@ -572,6 +573,37 @@ DM.GETPUT dmap key value
 **Return:**
 
 * **Bulk string reply**: the old value stored at the key.
+
+#### DM.CAS
+
+DM.CAS writes `newval` to a key only if the value currently stored at the key equals `oldval`. It is a conditional write: 
+`newval` is written only when the comparison succeeds, so it can be used to implement lock-free read-modify-write 
+loops on a single key. (`oldval` is the compare-against value, `newval` is the replacement – in the Go API these map to 
+the `expected` and `newValue` arguments.)
+
+Both `oldval` and `newval` are the raw, RESP-encoded value bytes. To get the `oldval` bytes for an existing key, 
+read it with `DM.GET` and pass the returned value back unchanged. An empty `oldval` means "key does not exist", 
+so the write happens only when the key is absent.
+
+Unlike `DM.GETPUT` and `DM.INCR`, which take the lock on the node that receives the request, `DM.CAS` always runs on the partition 
+owner. The compare and the write happen under the same lock on that node, which makes the operation serialize cluster-wide 
+for the key.
+
+The optional `EX`, `PX`, `EXAT` and `PXAT` arguments set the expiry of the new value and behave exactly as in `DM.PUT`.
+
+```
+DM.CAS dmap key oldval newval [EX seconds | PX milliseconds | EXAT timestamp-seconds | PXAT timestamp-milliseconds]
+```
+
+**Return:**
+
+A two-element array:
+
+* The first element is `1` if the value was written, or `0` if the comparison failed.
+* The second element is the RESP-encoded entry (the full stored entry, including key, TTL and timestamp, as returned by 
+  `DM.GETENTRY`) currently stored at the key when the comparison failed, or `(nil)` if the comparison succeeded or the key 
+  was absent. Note that this is the encoded entry, not the bare value: decode it and extract the value before reusing it as 
+  `oldval` in a retry.
 
 #### DM.INCRBYFLOAT
 

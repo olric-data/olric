@@ -197,9 +197,6 @@ func (dm *DMap) atomicIncrByFloat(e *env, delta float64) (float64, error) {
 	}
 
 	latest := current + delta
-	if err != nil {
-		return 0, err
-	}
 
 	valueBuf := pool.Get()
 	defer pool.Put(valueBuf)
