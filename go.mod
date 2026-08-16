@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/RoaringBitmap/roaring v1.9.4
-	github.com/buraksezer/consistent v0.10.0
+	github.com/buraksezer/consistent v1.0.0
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-sockaddr v1.0.7
