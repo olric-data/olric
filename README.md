@@ -61,6 +61,7 @@ It's good at distributed caching and publish/subscribe messaging.
 
 * [Features](#features)
 * [Support](#support)
+* [Development](#development)
 * [Installing](#installing)
   * [Docker](#docker)
 * [Getting Started](#getting-started)
@@ -171,6 +172,14 @@ We have a few communication channels:
 You should know that the issue tracker is only intended for bug reports and feature requests.
 
 Software doesn't maintain itself. If you need support on complex topics or request new features, please consider [sponsoring Olric](https://github.com/sponsors/buraksezer).
+
+## Development
+
+Please see our [AI Contribution Policy](governance/AI_POLICY.md) before raising 
+any AI-generated PR or bug reports. 
+
+Manually written code and bug reports are strongly preferred because AI-generated 
+content is often low-quality and hard to understand and maintain.
 
 ## Installing
 
