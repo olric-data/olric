@@ -33,6 +33,7 @@ import (
 	"github.com/olric-data/olric/internal/server"
 	"github.com/olric-data/olric/internal/service"
 	"github.com/olric-data/olric/pkg/flog"
+	"golang.org/x/sync/errgroup"
 )
 
 // ErrClusterQuorum means that the cluster could not reach a healthy numbers of members to operate.
@@ -209,22 +210,41 @@ func (r *RoutingTable) CheckBootstrap() error {
 	})
 }
 
+// fillRoutingTableConcurrency caps parallel partition probes during a routing
+// table rebuild.
+const fillRoutingTableConcurrency = 32
+
 func (r *RoutingTable) fillRoutingTable() {
 	if r.config.ReplicaCount > int(r.NumMembers()) {
 		r.log.V(1).Printf("[WARN] Desired replica count is %d and "+
 			"the cluster has %d members currently",
 			r.config.ReplicaCount, r.NumMembers())
 	}
+	// Each partition probes its owners over the network. Serially that is
+	// PartitionCount round trips per routing update, so even mildly slow owners
+	// push a single update past the joining node's bootstrap timeout and stall
+	// the coordinator's event loop.
+	unreachable := newUnreachableOwners()
 	table := make(map[uint64]*route)
+	var tableMtx sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(fillRoutingTableConcurrency)
+
 	for partID := uint64(0); partID < r.config.PartitionCount; partID++ {
-		rt := &route{
-			Owners: r.distributePrimaryCopies(partID),
-		}
-		if r.config.ReplicaCount > config.MinimumReplicaCount {
-			rt.Backups = r.distributeBackups(partID)
-		}
-		table[partID] = rt
+		g.Go(func() error {
+			rt := &route{
+				Owners: r.distributePrimaryCopies(partID, unreachable),
+			}
+			if r.config.ReplicaCount > config.MinimumReplicaCount {
+				rt.Backups = r.distributeBackups(partID, unreachable)
+			}
+			tableMtx.Lock()
+			table[partID] = rt
+			tableMtx.Unlock()
+			return nil
+		})
 	}
+	_ = g.Wait()
 	r.table = table
 }
 

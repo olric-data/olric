@@ -15,14 +15,17 @@
 package routingtable
 
 import (
+	"context"
 	"errors"
+	"sync"
+	"time"
 
 	"github.com/buraksezer/consistent"
 	"github.com/olric-data/olric/internal/discovery"
 	"github.com/olric-data/olric/internal/protocol"
 )
 
-func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member {
+func (r *RoutingTable) distributePrimaryCopies(partID uint64, unreachable *unreachableOwners) []discovery.Member {
 	// First you need to create a copy of the owners list. Don't modify the current list.
 	part := r.primary.PartitionByID(partID)
 	owners := make([]discovery.Member, part.OwnerCount())
@@ -59,21 +62,9 @@ func (r *RoutingTable) distributePrimaryCopies(partID uint64) []discovery.Member
 	// Prune empty nodes
 	for i := 0; i < len(owners); i++ {
 		owner := owners[i]
-		cmd := protocol.NewLengthOfPart(partID).Command(r.ctx)
-		rc := r.client.Get(owner.String())
-		err := rc.Process(r.ctx, cmd)
-		if err != nil {
-			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
-				"partition: %d: %v", partID, err)
-			// Pass it. If the node is down, memberlist package will send a leave event.
-			continue
-		}
-
-		count, err := cmd.Result()
-		if err != nil {
-			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
-				"partition: %d: %v", partID, err)
-			// Pass it. If the node is down, memberlist package will send a leave event.
+		count, ok := r.partitionKeyCount(partID, owner, false, unreachable)
+		if !ok {
+			// Unknown. If the node is down, memberlist will send a leave event.
 			continue
 		}
 
@@ -120,7 +111,7 @@ func isOwner(member discovery.Member, owners []consistent.Member) bool {
 	return false
 }
 
-func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
+func (r *RoutingTable) distributeBackups(partID uint64, unreachable *unreachableOwners) []discovery.Member {
 	part := r.backup.PartitionByID(partID)
 	owners := make([]discovery.Member, part.OwnerCount())
 	copy(owners, part.Owners())
@@ -167,20 +158,9 @@ func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
 	// Prune empty nodes
 	for i := 0; i < len(owners); i++ {
 		backup := owners[i]
-		cmd := protocol.NewLengthOfPart(partID).SetReplica().Command(r.ctx)
-		rc := r.client.Get(backup.String())
-		err := rc.Process(r.ctx, cmd)
-		if err != nil {
-			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
-				"partition: %d: %v", partID, err)
-			// Pass it. If the node is down, memberlist package will send a leave event.
-			continue
-		}
-		count, err := cmd.Result()
-		if err != nil {
-			r.log.V(6).Printf("[DEBUG] Failed to check key count on backup "+
-				"partition: %d: %v", partID, err)
-			// Pass it. If the node is down, memberlist package will send a leave event.
+		count, ok := r.partitionKeyCount(partID, backup, true, unreachable)
+		if !ok {
+			// Unknown. If the node is down, memberlist will send a leave event.
 			continue
 		}
 
@@ -224,4 +204,70 @@ func (r *RoutingTable) distributeBackups(partID uint64) []discovery.Member {
 		}
 	}
 	return owners
+}
+
+// unreachableOwners tracks owners whose probe failed during one fillRoutingTable
+// pass so the remaining partitions skip them instead of paying the timeout again.
+type unreachableOwners struct {
+	mu sync.Mutex
+	m  map[string]struct{}
+}
+
+func newUnreachableOwners() *unreachableOwners {
+	return &unreachableOwners{m: make(map[string]struct{})}
+}
+
+func (u *unreachableOwners) has(addr string) bool {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	_, ok := u.m[addr]
+	return ok
+}
+
+func (u *unreachableOwners) add(addr string) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.m[addr] = struct{}{}
+}
+
+// probeTimeout bounds a single partition key-count probe. The probe is a cheap
+// bookkeeping question, so a slow answer means the owner is unhealthy, not that
+// the answer is worth waiting for.
+const probeTimeout = 250 * time.Millisecond
+
+// partitionKeyCount asks an owner how many keys it holds for a partition.
+//
+// fillRoutingTable runs this for every owner of every partition, so an owner
+// that blocks costs PartitionCount timeouts per routing update, which stalls the
+// coordinator's event loop for minutes and leaves joining nodes without a
+// routing table. unreachable is per fillRoutingTable pass: once an owner fails,
+// the remaining partitions skip it. ok=false means "unknown", and callers keep
+// the owner rather than pruning on a failed probe.
+func (r *RoutingTable) partitionKeyCount(partID uint64, owner discovery.Member, replica bool, unreachable *unreachableOwners) (int64, bool) {
+	addr := owner.String()
+	if unreachable.has(addr) {
+		return 0, false
+	}
+
+	ctx, cancel := context.WithTimeout(r.ctx, probeTimeout)
+	defer cancel()
+
+	builder := protocol.NewLengthOfPart(partID)
+	if replica {
+		builder = builder.SetReplica()
+	}
+	cmd := builder.Command(ctx)
+
+	if err := r.client.Get(addr).Process(ctx, cmd); err != nil {
+		r.log.V(6).Printf("[DEBUG] Failed to check key count on partition: %d: %v", partID, err)
+		unreachable.add(addr)
+		return 0, false
+	}
+	count, err := cmd.Result()
+	if err != nil {
+		r.log.V(6).Printf("[DEBUG] Failed to check key count on partition: %d: %v", partID, err)
+		unreachable.add(addr)
+		return 0, false
+	}
+	return count, true
 }
