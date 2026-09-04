@@ -131,14 +131,27 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 		return
 	}
 
+	type expiredKey struct {
+		hkey uint64
+		key  string
+	}
+
 	janitor := func() bool {
 		if totalCount > maxTotalCount {
 			// Release the lock. Eviction will be triggered again.
 			return false
 		}
+
+		// Pick victims under the fragment lock, but delete them outside it.
+		// deleteOnCluster contacts the previous owners and the backups, and an
+		// owner that left during a rolling update makes each of those calls
+		// block for a full read timeout. Doing that while holding the fragment
+		// lock stalls prepareLeftOverDataReport, which serialises every routing
+		// table update on the node and stops the cluster from ever noticing the
+		// departed owner.
+		var victims []expiredKey
 		f.Lock()
-		defer f.Unlock()
-		count, keyCount := 0, 0
+		keyCount := 0
 		f.storage.RangeHKey(func(hkey uint64) bool {
 			keyCount++
 			if keyCount >= maxKeyCount {
@@ -157,19 +170,29 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 			}
 
 			if isKeyExpired(ttl) || dm.isKeyIdleOnFragment(hkey, f) {
-				err = dm.deleteOnCluster(hkey, key, f)
-				if err != nil {
-					// It will be tried again.
-					dm.s.log.V(3).Printf("[ERROR] Failed to delete expired key: %s on DMap: %s: %v",
-						key, dm.name, err)
-					return true
-				}
-
-				// number of valid items removed from cache to free memory for new items.
-				EvictedTotal.Increase(1)
+				victims = append(victims, expiredKey{hkey: hkey, key: key})
 			}
 			return true
 		})
+		f.Unlock()
+
+		count := 0
+		for _, victim := range victims {
+			deleted, err := dm.deleteExpiredKey(victim.hkey, victim.key, f)
+			if err != nil {
+				// It will be tried again.
+				dm.s.log.V(3).Printf("[ERROR] Failed to delete expired key: %s on DMap: %s: %v",
+					victim.key, dm.name, err)
+				continue
+			}
+			if !deleted {
+				continue
+			}
+
+			// number of valid items removed from cache to free memory for new items.
+			EvictedTotal.Increase(1)
+			count++
+		}
 
 		totalCount += count
 		return count >= maxKeyCount/4

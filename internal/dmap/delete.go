@@ -89,6 +89,56 @@ func (dm *DMap) deleteBackupOnCluster(hkey uint64, key string) error {
 }
 
 // deleteOnCluster is not a thread-safe function
+
+// deleteExpiredKey removes a key that the eviction scanner has already decided
+// is dead. Unlike deleteOnCluster it must NOT be called with the fragment lock
+// held: deleteFromPreviousOwners and deleteBackupOnCluster talk to other nodes,
+// and an owner that departed during a rolling update stalls those for a full
+// read timeout per key.
+//
+// Because the lock is not held throughout, the caller's expiry decision can be
+// stale by the time we get here. A rate limiter refreshes the same keys
+// constantly, so the entry is re-checked under the lock and kept if a writer
+// revived it. Reports whether the key was actually removed.
+func (dm *DMap) deleteExpiredKey(hkey uint64, key string, f *fragment) (bool, error) {
+	owners := dm.s.primary.PartitionOwnersByHKey(hkey)
+	if len(owners) == 0 {
+		panic("partition owners list cannot be empty")
+	}
+
+	if err := dm.deleteFromPreviousOwners(key, owners); err != nil {
+		return false, err
+	}
+
+	if dm.s.config.ReplicaCount != 0 {
+		if err := dm.deleteBackupOnCluster(hkey, key); err != nil {
+			return false, err
+		}
+	}
+
+	f.Lock()
+	defer f.Unlock()
+
+	ttl, err := f.storage.GetTTL(hkey)
+	if err != nil {
+		// Already gone. Nothing left to remove.
+		return false, nil
+	}
+	if !isKeyExpired(ttl) && !dm.isKeyIdleOnFragment(hkey, f) {
+		// Revived while we were on the network. Deleting now would drop a live
+		// entry, which for a rate limiter means silently losing a counter.
+		return false, nil
+	}
+
+	if err := f.storage.Delete(hkey); err != nil {
+		return false, err
+	}
+
+	DeleteHits.Increase(1)
+
+	return true, nil
+}
+
 func (dm *DMap) deleteOnCluster(hkey uint64, key string, f *fragment) error {
 	owners := dm.s.primary.PartitionOwnersByHKey(hkey)
 	if len(owners) == 0 {
