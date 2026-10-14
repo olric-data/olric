@@ -132,6 +132,7 @@ func (dm *DMap) putOnReplicaFragment(e *env) error {
 
 func (dm *DMap) asyncPutOnBackup(e *env, data []byte, owner discovery.Member) {
 	defer dm.s.wg.Done()
+	defer dm.s.pendingBackups.Add(-1)
 
 	rc := dm.s.client.Get(owner.String())
 	cmd := protocol.NewPutEntry(e.dmap, e.key, data).Command(dm.s.ctx)
@@ -165,6 +166,7 @@ func (dm *DMap) asyncPutOnCluster(e *env, nt storage.Entry) error {
 		}
 
 		dm.s.wg.Add(1)
+		dm.s.pendingBackups.Add(1)
 		go dm.asyncPutOnBackup(e, encodedEntry, owner)
 	}
 

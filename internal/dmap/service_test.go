@@ -16,7 +16,9 @@ package dmap
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/olric-data/olric/internal/testcluster"
 )
@@ -32,5 +34,59 @@ func TestDMapService(t *testing.T) {
 	err := s.Shutdown(context.Background())
 	if err != nil {
 		t.Fatalf("Expected nil. Got: %v", err)
+	}
+}
+
+func TestDMapService_Shutdown_WaitsForPendingBackups(t *testing.T) {
+	cluster := testcluster.New(NewService)
+	defer cluster.Shutdown()
+	s := cluster.AddMember(nil).(*Service)
+
+	s.pendingBackups.Add(1)
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Shutdown(context.Background())
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("Shutdown returned with a backup write in flight")
+	case <-time.After(100 * time.Millisecond):
+	}
+	if s.ctx.Err() != nil {
+		t.Fatal("Service context cancelled with a backup write in flight")
+	}
+
+	s.pendingBackups.Add(-1)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Expected nil. Got: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Shutdown did not return after the backup write finished")
+	}
+}
+
+func TestDMapService_Shutdown_PendingBackupsBoundedByContext(t *testing.T) {
+	cluster := testcluster.New(NewService)
+	defer cluster.Shutdown()
+	s := cluster.AddMember(nil).(*Service)
+
+	s.pendingBackups.Add(1)
+	defer s.pendingBackups.Add(-1)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	err := s.Shutdown(ctx)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Expected context.DeadlineExceeded. Got: %v", err)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("Shutdown ignored the context deadline")
+	}
+	if s.ctx.Err() == nil {
+		t.Fatal("Service context not cancelled after the deadline")
 	}
 }

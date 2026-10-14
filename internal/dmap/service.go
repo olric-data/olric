@@ -19,6 +19,8 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/events"
@@ -54,8 +56,10 @@ type Service struct {
 	dmaps   map[string]*DMap
 	storage *storageMap
 	wg      sync.WaitGroup
-	ctx     context.Context
-	cancel  context.CancelFunc
+	// async backup writes in flight; Shutdown waits for them before cancelling ctx.
+	pendingBackups atomic.Int64
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 func registerErrors() {
@@ -142,7 +146,20 @@ func (s *Service) Start() error {
 	return nil
 }
 
+func (s *Service) waitPendingBackups(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for s.pendingBackups.Load() > 0 {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
 func (s *Service) Shutdown(ctx context.Context) error {
+	s.waitPendingBackups(ctx)
 	s.cancel()
 	done := make(chan struct{})
 
