@@ -51,6 +51,14 @@ func (f *MockFragment) Stats() storage.Stats {
 	}
 }
 
+func (f *MockFragment) TryStats() (storage.Stats, bool) {
+	if !f.TryRLock() {
+		return storage.Stats{}, false
+	}
+	defer f.RUnlock()
+	return storage.Stats{Length: len(f.m)}, true
+}
+
 func (f *MockFragment) Name() string {
 	return "Mock-DMap"
 }

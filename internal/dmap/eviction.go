@@ -15,6 +15,7 @@
 package dmap
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/olric-data/olric/config"
 	"github.com/olric-data/olric/internal/cluster/partitions"
 	"github.com/olric-data/olric/pkg/storage"
 	"golang.org/x/sync/semaphore"
@@ -111,6 +113,18 @@ func (s *Service) evictKeys() {
 	})
 }
 
+// evictionContext bounds the remote work in a pass, rather than allowing every
+// remote delete to consume a fresh socket timeout while the fragment is locked.
+func (s *Service) evictionContext(parent context.Context) (context.Context, context.CancelFunc) {
+	timeout := s.config.Client.ReadTimeout
+	if timeout <= 0 {
+		// Background eviction must remain bounded even if socket timeouts
+		// are disabled for foreground operations.
+		timeout = config.DefaultReadTimeout
+	}
+	return context.WithTimeout(parent, timeout)
+}
+
 func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragment) {
 	/*
 		From Redis Docs:
@@ -130,6 +144,8 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 		s.log.V(3).Printf("[ERROR] Failed to load DMap: %s: %v", name, err)
 		return
 	}
+	ctx, cancel := s.evictionContext(s.ctx)
+	defer cancel()
 
 	janitor := func() bool {
 		if totalCount > maxTotalCount {
@@ -140,6 +156,9 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 		defer f.Unlock()
 		count, keyCount := 0, 0
 		f.storage.RangeHKey(func(hkey uint64) bool {
+			if ctx.Err() != nil {
+				return false
+			}
 			keyCount++
 			if keyCount >= maxKeyCount {
 				// this means 'break'.
@@ -157,7 +176,7 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 			}
 
 			if isKeyExpired(ttl) || dm.isKeyIdleOnFragment(hkey, f) {
-				err = dm.deleteOnCluster(hkey, key, f)
+				err = dm.deleteOnCluster(ctx, hkey, key, f)
 				if err != nil {
 					// It will be tried again.
 					dm.s.log.V(3).Printf("[ERROR] Failed to delete expired key: %s on DMap: %s: %v",
@@ -184,11 +203,10 @@ func (s *Service) scanFragmentForEviction(partID uint64, name string, f *fragmen
 	}()
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-f.ctx.Done():
 			// the fragment is closed.
-			return
-		case <-s.ctx.Done():
-			// The server has gone.
 			return
 		default:
 		}
@@ -243,7 +261,9 @@ func (dm *DMap) evictKeyWithLRU(e *env) error {
 	if dm.s.log.V(6).Ok() {
 		dm.s.log.V(6).Printf("[DEBUG] Evicted item on DMap: %s, key: %s with LRU", e.dmap, key)
 	}
-	err = dm.deleteOnCluster(item.HKey, key, e.fragment)
+	ctx, cancel := dm.s.evictionContext(e.ctx)
+	defer cancel()
+	err = dm.deleteOnCluster(ctx, item.HKey, key, e.fragment)
 	if err != nil {
 		return err
 	}

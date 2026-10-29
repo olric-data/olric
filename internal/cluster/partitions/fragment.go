@@ -22,6 +22,9 @@ import (
 type Fragment interface {
 	Name() string
 	Stats() storage.Stats
+	// TryStats must not wait for ongoing operations. A false result means the
+	// fragment is busy, not that it is empty.
+	TryStats() (storage.Stats, bool)
 	Move(*Partition, string, []discovery.Member) error
 	Compaction() (bool, error)
 	Destroy() error
