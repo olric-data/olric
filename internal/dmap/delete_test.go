@@ -248,7 +248,7 @@ func TestDMap_Delete_DeleteKeyValFromPreviousOwners(t *testing.T) {
 	}
 	// this has to be the last one
 	data = append(data, owner)
-	err = dm.deleteFromPreviousOwners("mykey", data)
+	err = dm.deleteFromPreviousOwners(context.Background(), "mykey", data)
 	if err != nil {
 		t.Fatalf("Expected nil. Got: %v", err)
 	}

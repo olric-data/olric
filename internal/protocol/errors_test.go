@@ -18,7 +18,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -50,4 +53,77 @@ func TestProtocol_ConvertError(t *testing.T) {
 	err := fmt.Errorf("WRONG %s", errSomethingWentWrong.Error())
 	cerr := ConvertError(err)
 	require.ErrorIs(t, cerr, errSomethingWentWrong)
+}
+
+func TestProtocol_ConvertError_Context(t *testing.T) {
+	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded} {
+		t.Run(sentinel.Error(), func(t *testing.T) {
+			for _, err := range []error{sentinel, fmt.Errorf("command failed: %w", sentinel)} {
+				converted := ConvertError(err)
+				require.ErrorIs(t, converted, sentinel)
+				require.Equal(t, err, converted)
+			}
+		})
+	}
+}
+
+// delayedDeadlineContext models a socket deadline firing before cancellation
+// of the context becomes visible to the caller.
+type delayedDeadlineContext struct {
+	context.Context
+	deadline time.Time
+}
+
+func (c delayedDeadlineContext) Deadline() (time.Time, bool) {
+	return c.deadline, true
+}
+
+func TestProtocol_ConvertContextError(t *testing.T) {
+	tests := []struct {
+		name       string
+		newContext func() (context.Context, context.CancelFunc)
+		sentinel   error
+	}{
+		{
+			name: "canceled",
+			newContext: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			sentinel: context.Canceled,
+		},
+		{
+			name: "deadline",
+			newContext: func() (context.Context, context.CancelFunc) {
+				return context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+			},
+			sentinel: context.DeadlineExceeded,
+		},
+		{
+			name: "deadline before cancellation notification",
+			newContext: func() (context.Context, context.CancelFunc) {
+				return delayedDeadlineContext{Context: context.Background(), deadline: time.Now().Add(-time.Second)}, func() {}
+			},
+			sentinel: context.DeadlineExceeded,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := tt.newContext()
+			defer cancel()
+
+			require.NoError(t, ConvertContextError(ctx, nil), "a completed command must remain successful")
+			transportErr := &net.OpError{Op: "read", Net: "tcp", Err: os.ErrDeadlineExceeded}
+			require.ErrorIs(t, ConvertContextError(ctx, transportErr), tt.sentinel)
+			require.ErrorIs(t, ConvertContextError(ctx, errSomethingWentWrong), tt.sentinel, "a completed context takes precedence over a server error")
+			wrapped := fmt.Errorf("command failed: %w", tt.sentinel)
+			require.Equal(t, wrapped, ConvertContextError(ctx, wrapped))
+		})
+	}
+	SetError("WRONG", errSomethingWentWrong)
+	err := fmt.Errorf("WRONG %s", errSomethingWentWrong.Error())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	require.ErrorIs(t, ConvertContextError(ctx, err), errSomethingWentWrong)
 }

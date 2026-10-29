@@ -88,3 +88,20 @@ func (p *Partition) Length() int {
 	})
 	return length
 }
+
+// TryLength returns the partition length without waiting for busy fragments.
+// The length is only valid when every fragment could be inspected.
+func (p *Partition) TryLength() (int, bool) {
+	var length int
+	ok := true
+	p.Map().Range(func(_, tmp any) bool {
+		stats, available := tmp.(Fragment).TryStats()
+		if !available {
+			ok = false
+			return false
+		}
+		length += stats.Length
+		return true
+	})
+	return length, ok
+}

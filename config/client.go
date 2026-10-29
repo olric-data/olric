@@ -46,6 +46,8 @@ type Client struct {
 	// Timeout for socket reads. If reached, commands will fail
 	// with a timeout instead of blocking. Use value -1 for no timeout and 0 for default.
 	// Default is 3 seconds.
+	// A positive value also bounds the remote work in an eviction pass. Eviction
+	// uses DefaultReadTimeout when socket read timeouts are disabled.
 	ReadTimeout time.Duration
 
 	// Timeout for socket writes. If reached, commands will fail
@@ -211,6 +213,10 @@ func (c *Client) RedisOptions() *redis.Options {
 		ConnMaxIdleTime: c.IdleTimeout,
 		TLSConfig:       c.TLSConfig,
 		Limiter:         c.Limiter,
+
+		// Both internal RPCs and the public ClusterClient honor context
+		// deadlines for socket I/O, even when socket timeouts are longer.
+		ContextTimeoutEnabled: true,
 	}
 	if c.Authentication.Enabled() {
 		options.Password = c.Authentication.Password

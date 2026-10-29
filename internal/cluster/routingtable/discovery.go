@@ -26,6 +26,9 @@ var (
 	ErrClusterJoin  = errors.New("cannot join the cluster")
 	// ErrOperationTimeout is returned when an operation times out.
 	ErrOperationTimeout = errors.New("operation timeout")
+	// ErrPartitionBusy means a partition's fragments could not be inspected
+	// without waiting. Its existing owners must be retained for a later pass.
+	ErrPartitionBusy = errors.New("partition is busy")
 )
 
 // bootstrapCoordinator prepares the very first routing table and bootstraps the coordinator node.

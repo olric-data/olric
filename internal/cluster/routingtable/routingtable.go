@@ -83,6 +83,7 @@ func registerErrors() {
 	protocol.SetError("CLUSTERJOIN", ErrClusterJoin)
 	protocol.SetError("SERVERGONE", ErrServerGone)
 	protocol.SetError("OPERATIONTIMEOUT", ErrOperationTimeout)
+	protocol.SetError("PARTITIONBUSY", ErrPartitionBusy)
 }
 
 func New(e *environment.Environment) *RoutingTable {

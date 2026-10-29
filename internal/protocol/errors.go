@@ -15,10 +15,12 @@
 package protocol
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/tidwall/redcon"
 )
@@ -82,6 +84,9 @@ func ConvertError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
 
 	parsed := strings.SplitN(err.Error(), " ", 2)
 	if perr := GetError(parsed[0]); perr != nil {
@@ -93,6 +98,26 @@ func ConvertError(err error) error {
 	}
 
 	return err
+}
+
+// ConvertContextError converts a failed command and preserves its context error.
+// Socket I/O interrupted by a context deadline can return a transport timeout
+// rather than wrapping context.DeadlineExceeded.
+// A canceled or expired context takes precedence over the command's error,
+// including a server error. Socket deadlines can fire before ctx.Err is set.
+func ConvertContextError(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	ctxErr := ctx.Err()
+	deadline, hasDeadline := ctx.Deadline()
+	if ctxErr == nil && hasDeadline && !time.Now().Before(deadline) {
+		ctxErr = context.DeadlineExceeded
+	}
+	if ctxErr != nil && !errors.Is(err, ctxErr) {
+		return ctxErr
+	}
+	return ConvertError(err)
 }
 
 func WriteError(conn redcon.Conn, err error) {

@@ -51,57 +51,57 @@ func (dm *DMap) deleteFromFragment(key string, kind partitions.Kind) error {
 	return f.storage.Delete(hkey)
 }
 
-func (dm *DMap) deleteFromPreviousOwners(key string, owners []discovery.Member) error {
+func (dm *DMap) deleteFromPreviousOwners(ctx context.Context, key string, owners []discovery.Member) error {
 	// Traverse in reverse order. Except from the latest host, this one.
 	for i := len(owners) - 2; i >= 0; i-- {
 		owner := owners[i]
-		cmd := protocol.NewDelEntry(dm.name, key).Command(dm.s.ctx)
+		cmd := protocol.NewDelEntry(dm.name, key).Command(ctx)
 		rc := dm.s.client.Get(owner.String())
-		err := rc.Process(dm.s.ctx, cmd)
+		err := rc.Process(ctx, cmd)
 		if err != nil {
-			return protocol.ConvertError(err)
-		}
-		err = cmd.Err()
-		if err != nil {
-			return protocol.ConvertError(err)
+			return protocol.ConvertContextError(ctx, err)
 		}
 	}
 	return nil
 }
 
-func (dm *DMap) deleteBackupOnCluster(hkey uint64, key string) error {
+func (dm *DMap) deleteBackupOnCluster(ctx context.Context, hkey uint64, key string) error {
 	owners := dm.s.backup.PartitionOwnersByHKey(hkey)
 	var g errgroup.Group
 	for _, owner := range owners {
 		mem := owner
 		g.Go(func() error {
-			cmd := protocol.NewDelEntry(dm.name, key).SetReplica().Command(dm.s.ctx)
+			cmd := protocol.NewDelEntry(dm.name, key).SetReplica().Command(ctx)
 			rc := dm.s.client.Get(mem.String())
-			err := rc.Process(dm.s.ctx, cmd)
+			err := rc.Process(ctx, cmd)
 			if err != nil {
 				dm.s.log.V(3).Printf("[ERROR] Failed to delete replica key/value on %s: %s", dm.name, err)
-				return protocol.ConvertError(err)
 			}
-			return protocol.ConvertError(cmd.Err())
+			return protocol.ConvertContextError(ctx, err)
 		})
 	}
 	return g.Wait()
 }
 
 // deleteOnCluster is not a thread-safe function
-func (dm *DMap) deleteOnCluster(hkey uint64, key string, f *fragment) error {
+func (dm *DMap) deleteOnCluster(ctx context.Context, hkey uint64, key string, f *fragment) error {
+	err := ctx.Err()
+	if err != nil {
+		return err
+	}
+
 	owners := dm.s.primary.PartitionOwnersByHKey(hkey)
 	if len(owners) == 0 {
 		panic("partition owners list cannot be empty")
 	}
 
-	err := dm.deleteFromPreviousOwners(key, owners)
+	err = dm.deleteFromPreviousOwners(ctx, key, owners)
 	if err != nil {
 		return err
 	}
 
 	if dm.s.config.ReplicaCount != 0 {
-		err := dm.deleteBackupOnCluster(hkey, key)
+		err := dm.deleteBackupOnCluster(ctx, hkey, key)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func (dm *DMap) deleteOnCluster(hkey uint64, key string, f *fragment) error {
 	return nil
 }
 
-func (dm *DMap) deleteKey(key string) error {
+func (dm *DMap) deleteKey(ctx context.Context, key string) error {
 	hkey := partitions.HKey(dm.name, key)
 	part := dm.getPartitionByHKey(hkey, partitions.PRIMARY)
 	f, err := dm.loadOrCreateFragment(part)
@@ -136,7 +136,7 @@ func (dm *DMap) deleteKey(key string) error {
 		return nil
 	}
 
-	return dm.deleteOnCluster(hkey, key, f)
+	return dm.deleteOnCluster(ctx, hkey, key, f)
 }
 
 func (dm *DMap) deleteKeys(ctx context.Context, keys ...string) (int, error) {
@@ -150,19 +150,16 @@ func (dm *DMap) deleteKeys(ctx context.Context, keys ...string) (int, error) {
 	for member, distributedKeys := range members {
 		if member.CompareByName(dm.s.rt.This()) {
 			for _, key := range distributedKeys {
-				if err := dm.deleteKey(key); err != nil {
+				err := dm.deleteKey(ctx, key)
+				if err != nil {
 					return 0, err
 				}
 			}
 		} else {
-			cmd := protocol.NewDel(dm.name, distributedKeys...).Command(dm.s.ctx)
+			cmd := protocol.NewDel(dm.name, distributedKeys...).Command(ctx)
 			rc := dm.s.client.Get(member.String())
 			err := rc.Process(ctx, cmd)
-			if err != nil {
-				return 0, protocol.ConvertError(err)
-			}
-
-			return 0, protocol.ConvertError(cmd.Err())
+			return 0, protocol.ConvertContextError(ctx, err)
 		}
 	}
 
@@ -170,6 +167,8 @@ func (dm *DMap) deleteKeys(ctx context.Context, keys ...string) (int, error) {
 }
 
 // Delete deletes the value for the given key. Delete will not return error if key doesn't exist. It's thread-safe.
+// A context deadline can stop deletion after some owners have already deleted
+// their copies. An error does not roll back completed remote deletions.
 // It is safe to modify the contents of the argument after Delete returns.
 func (dm *DMap) Delete(ctx context.Context, keys ...string) (int, error) {
 	return dm.deleteKeys(ctx, keys...)

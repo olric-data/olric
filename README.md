@@ -1088,7 +1088,11 @@ In order to get more info about installation and configuration of the plugins, s
 
 ### Timeouts
 
-Olric nodes supports setting `KeepAlivePeriod` on TCP sockets. 
+The Go `ClusterClient` and internal RPC clients honor caller context deadlines for socket I/O, even when the configured socket timeout is longer. This applies to public client operations as well as internal eviction requests. Error conversion preserves `context.Canceled` and `context.DeadlineExceeded`, including wrapped errors, for `errors.Is` checks.
+
+Cluster deletion is not atomic across members. A caller's deadline can stop a delete after previous owners or some backup owners have deleted their copies, while the primary still retains its copy. A failed or timed-out delete does not roll back remote changes.
+
+Olric nodes support setting `KeepAlivePeriod` on TCP sockets.
 
 **Server-side:**
 
@@ -1109,9 +1113,17 @@ given an appropriate fraction of the time to connect.
 Timeout for socket reads. If reached, commands will fail with a timeout instead of blocking. Use value -1 for no 
 timeout and 0 for default. The default is config.DefaultReadTimeout
 
+A positive `Client.ReadTimeout` also limits the total network work in one fragment eviction pass, rather than giving each expired key a fresh timeout. Eviction uses `config.DefaultReadTimeout` (3 seconds) when socket read timeouts are disabled. A larger value, such as 30 seconds, permits eviction to retain the fragment write lock for that long during a stalled RPC; there is currently no separate eviction timeout setting.
+
 ##### config.WriteTimeout
 
 Timeout for socket writes. If reached, commands will fail with a timeout instead of blocking. The default is config.DefaultWriteTimeout
+
+#### Eviction and routing recovery
+
+Routing maintenance inspects fragment statistics without waiting for fragment locks. A held or pending write lock can make even a healthy fragment appear busy. The internal length probe returns `PARTITIONBUSY`; the coordinator retains the existing owner, and ownership reports conservatively retain possibly populated partitions. This may delay owner pruning until a later routing push (`RoutingTablePushInterval`, 1 minute by default) and increase ownership-retention logging under write load.
+
+These safeguards keep routing publication and replacement-member bootstrap independent of busy fragments. Eviction still holds the fragment write lock during remote deletes, so reads and writes can wait for the eviction budget.
 
 ## Architecture
 

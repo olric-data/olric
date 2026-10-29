@@ -41,7 +41,13 @@ func (r *RoutingTable) lengthOfPartCommandHandler(conn redcon.Conn, cmd redcon.C
 		part = r.primary.PartitionByID(lengthOfPartCmd.PartID)
 	}
 
-	conn.WriteInt(part.Length())
+	length, ok := part.TryLength()
+	if !ok {
+		// Keep this owner until a later routing pass can prove it is empty.
+		protocol.WriteError(conn, fmt.Errorf("%w: %d", ErrPartitionBusy, part.ID()))
+		return
+	}
+	conn.WriteInt(length)
 }
 
 func (r *RoutingTable) verifyRoutingTable(id uint64, table map[uint64]*route) error {

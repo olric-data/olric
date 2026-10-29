@@ -45,6 +45,16 @@ func (f *fragment) Stats() storage.Stats {
 	return f.storage.Stats()
 }
 
+// TryStats keeps routing maintenance independent of fragment operations that
+// may be waiting for a remote member while holding the write lock.
+func (f *fragment) TryStats() (storage.Stats, bool) {
+	if !f.TryRLock() {
+		return storage.Stats{}, false
+	}
+	defer f.RUnlock()
+	return f.storage.Stats(), true
+}
+
 func (f *fragment) Compaction() (bool, error) {
 	select {
 	case <-f.ctx.Done():

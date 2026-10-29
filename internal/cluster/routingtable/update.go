@@ -35,12 +35,16 @@ func (r *RoutingTable) prepareLeftOverDataReport() ([]byte, error) {
 	res := leftOverDataReport{}
 	for partID := uint64(0); partID < r.config.PartitionCount; partID++ {
 		part := r.primary.PartitionByID(partID)
-		if part.Length() != 0 {
+		length, ok := part.TryLength()
+		// A busy fragment may still contain data. Report it conservatively
+		// instead of blocking routing updates or dropping its ownership.
+		if !ok || length != 0 {
 			res.Partitions = append(res.Partitions, partID)
 		}
 
 		backup := r.backup.PartitionByID(partID)
-		if backup.Length() != 0 {
+		length, ok = backup.TryLength()
+		if !ok || length != 0 {
 			res.Backups = append(res.Backups, partID)
 		}
 	}

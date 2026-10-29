@@ -25,10 +25,18 @@ import (
 
 type testFragment struct {
 	length int
+	busy   bool
 }
 
 func (tf *testFragment) Stats() storage.Stats {
 	return storage.Stats{Length: tf.length}
+}
+
+func (tf *testFragment) TryStats() (storage.Stats, bool) {
+	if tf.busy {
+		return storage.Stats{}, false
+	}
+	return tf.Stats(), true
 }
 
 func (tf *testFragment) Name() string {
@@ -86,4 +94,32 @@ func TestPartition(t *testing.T) {
 		length := p.Length()
 		require.Equal(t, 30, length)
 	})
+}
+
+func TestPartition_TryLength(t *testing.T) {
+	tests := []struct {
+		name      string
+		fragments []testFragment
+		length    int
+		available bool
+	}{
+		{name: "no fragments", available: true},
+		{name: "empty fragments", fragments: []testFragment{{}, {}}, available: true},
+		{name: "multiple fragments", fragments: []testFragment{{length: 10}, {length: 20}}, length: 30, available: true},
+		{name: "busy empty fragment", fragments: []testFragment{{busy: true}}},
+		{name: "busy populated fragment", fragments: []testFragment{{length: 10, busy: true}, {length: 20}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := New(1, PRIMARY).PartitionByID(0)
+			for i := range tt.fragments {
+				p.Map().Store(i, &tt.fragments[i])
+			}
+			length, available := p.TryLength()
+			require.Equal(t, tt.available, available)
+			if available {
+				require.Equal(t, tt.length, length)
+			}
+		})
+	}
 }
