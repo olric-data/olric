@@ -93,3 +93,69 @@ func TestDMap_Compaction(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+// TestFragment_Compaction_ClosedFragmentReportsDone guards against a regression
+// where a closed fragment made Compaction return (false, nil). That value sends
+// callCompactionOnFragment into an endless retry loop (it only stops on
+// done=true or a non-nil error), which blocks triggerCompaction's wg.Wait() and
+// stops compactionWorker for the whole node, letting garbage grow until the
+// process is OOM-killed.
+func TestFragment_Compaction_ClosedFragmentReportsDone(t *testing.T) {
+	kv, err := ramblock.New(storage.NewConfig(map[string]interface{}{
+		"tableSize":           uint64(2048),
+		"maxIdleTableTimeout": time.Millisecond,
+	}))
+	require.NoError(t, err)
+	require.NoError(t, kv.Start())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	f := &fragment{
+		storage: kv,
+		ctx:     ctx,
+		cancel:  cancel,
+	}
+
+	done, err := f.Compaction()
+	require.NoError(t, err)
+	require.True(t, done, "empty storage must report compaction as done")
+
+	require.NoError(t, f.Close())
+
+	done, err = f.Compaction()
+	require.NoError(t, err)
+	require.True(t, done, "a closed fragment must report compaction as done; returning false loops forever")
+}
+
+// TestCallCompactionOnFragment_ClosedFragmentReturnsImmediately exercises the
+// real caller path. callCompactionOnFragment retries every millisecond while
+// Compaction reports done=false, so a closed fragment used to hang this call
+// forever and, through triggerCompaction's wg.Wait(), stop compactionWorker for
+// the whole node.
+func TestCallCompactionOnFragment_ClosedFragmentReturnsImmediately(t *testing.T) {
+	kv, err := ramblock.New(storage.NewConfig(map[string]interface{}{
+		"tableSize":           uint64(2048),
+		"maxIdleTableTimeout": time.Millisecond,
+	}))
+	require.NoError(t, err)
+	require.NoError(t, kv.Start())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	f := &fragment{
+		storage: kv,
+		ctx:     ctx,
+		cancel:  cancel,
+	}
+	require.NoError(t, f.Close())
+
+	s := &Service{ctx: context.Background()}
+
+	returned := make(chan bool, 1)
+	go func() { returned <- s.callCompactionOnFragment(f) }()
+
+	select {
+	case done := <-returned:
+		require.True(t, done)
+	case <-time.After(2 * time.Second):
+		t.Fatal("callCompactionOnFragment blocked on a closed fragment; the compaction worker would never run again")
+	}
+}

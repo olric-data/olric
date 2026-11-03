@@ -38,6 +38,11 @@ const (
 	defaultTableSize = uint64(1 << 20)
 
 	defaultMaxIdleTableTimeout = 15 * time.Minute
+
+	// defaultPurgeStaleEntries keeps the upstream behavior: compaction does not
+	// drop entries that have been overwritten by a newer version unless the
+	// engine explicitly opts in via the "purgeStaleEntries" config.
+	defaultPurgeStaleEntries = false
 )
 
 // RamBlock implements an in-memory storage engine.
@@ -53,6 +58,7 @@ func DefaultConfig() *storage.Config {
 	options := storage.NewConfig(nil)
 	options.Add("tableSize", defaultTableSize)
 	options.Add("maxIdleTableTimeout", defaultMaxIdleTableTimeout)
+	options.Add("purgeStaleEntries", defaultPurgeStaleEntries)
 	return options
 }
 
@@ -234,7 +240,7 @@ func (rb *RamBlock) putWithRetry(writeFn func(t *table.Table) error) error {
 
 // PutRaw sets the raw value for the given key.
 func (rb *RamBlock) PutRaw(hkey uint64, value []byte) error {
-	if uint64(len(value)) > rb.tableSize {
+	if uint64(len(value)) >= rb.tableSize {
 		return storage.ErrEntryTooLarge
 	}
 
@@ -245,7 +251,7 @@ func (rb *RamBlock) PutRaw(hkey uint64, value []byte) error {
 
 // Put sets the value for the given key. It overwrites any previous value for that key
 func (rb *RamBlock) Put(hkey uint64, value storage.Entry) error {
-	if requiredSizeForAnEntry(value) > rb.tableSize {
+	if requiredSizeForAnEntry(value) >= rb.tableSize {
 		return storage.ErrEntryTooLarge
 	}
 

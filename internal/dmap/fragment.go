@@ -48,8 +48,17 @@ func (f *fragment) Stats() storage.Stats {
 func (f *fragment) Compaction() (bool, error) {
 	select {
 	case <-f.ctx.Done():
-		// fragment is closed or destroyed
-		return false, nil
+		// The fragment has been closed or destroyed, so there is nothing left
+		// to compact: report the work as done.
+		//
+		// Returning false here used to make callCompactionOnFragment retry the
+		// same fragment every millisecond forever, because that loop only stops
+		// on done=true or a non-nil error. A closed fragment can still be
+		// observed by doCompaction in the window between fragment.Close() and
+		// part.Map().Delete() inside wipeOutFragment, so a single hit blocked
+		// triggerCompaction's wg.Wait() permanently and compactionWorker never
+		// ran again. Garbage then piled up until the node was OOM-killed.
+		return true, nil
 	default:
 	}
 	return f.storage.Compaction()

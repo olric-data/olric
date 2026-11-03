@@ -204,6 +204,7 @@ dmaps:
     name: ramblock
     config:
       tableSize: 524288 # bytes
+      # purgeStaleEntries: false # drop entries overwritten by a newer version during compaction
 #  checkEmptyFragmentsInterval: 1m
 #  triggerCompactionInterval: 10m
 #  numEvictionWorkers: 1

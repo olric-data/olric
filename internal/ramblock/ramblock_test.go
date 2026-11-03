@@ -651,6 +651,63 @@ func TestRamBlock_Put_ErrEntryTooLarge(t *testing.T) {
 	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
 }
 
+// TestRamBlock_Put_TableSizeBoundary verifies the boundary around tableSize:
+// an entry whose total footprint (key + value + metadata) is exactly tableSize
+// never fits into any table, so it has to be rejected. Before the explicit
+// check in RamBlock.Put, this case made putWithRetry create new tables forever.
+func TestRamBlock_Put_TableSizeBoundary(t *testing.T) {
+	const tableSize = 1024
+
+	key := bkey(1)
+	tests := []struct {
+		name     string
+		valueLen int
+		wantSize uint64
+		wantErr  error
+	}{
+		{
+			name:     "one byte less than tableSize fits",
+			valueLen: tableSize - len(key) - table.MetadataLength - 1,
+			wantSize: tableSize - 1,
+		},
+		{
+			name:     "exactly tableSize is rejected",
+			valueLen: tableSize - len(key) - table.MetadataLength,
+			wantSize: tableSize,
+			wantErr:  storage.ErrEntryTooLarge,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := DefaultConfig()
+			c.Add("tableSize", uint64(tableSize))
+			s := testRamBlock(t, c)
+
+			e := entry.New()
+			e.SetKey(key)
+			e.SetValue(make([]byte, tt.valueLen))
+			e.SetTTL(1)
+			e.SetTimestamp(time.Now().UnixNano())
+
+			require.Equal(t, tt.wantSize, requiredSizeForAnEntry(e))
+
+			hkey := xxhash.Sum64([]byte(key))
+			err := s.Put(hkey, e)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			res, err := s.Get(hkey)
+			require.NoError(t, err)
+			require.Equal(t, key, res.Key())
+			require.Equal(t, e.Value(), res.Value())
+		})
+	}
+}
+
 func TestPrepareTableSize_NegativeValues(t *testing.T) {
 	negativeTests := []struct {
 		name string
@@ -728,6 +785,63 @@ func TestRamBlock_PutRaw_ErrEntryTooLarge(t *testing.T) {
 	hkey := xxhash.Sum64([]byte("key"))
 	err := s.PutRaw(hkey, value)
 	require.ErrorIs(t, err, storage.ErrEntryTooLarge)
+}
+
+// TestRamBlock_PutRaw_TableSizeBoundary verifies the same boundary for raw
+// values. Callers (dmap) pass an encoded entry to PutRaw, so its length must
+// be strictly less than tableSize to be stored.
+func TestRamBlock_PutRaw_TableSizeBoundary(t *testing.T) {
+	const tableSize = 1024
+
+	key := bkey(1)
+	tests := []struct {
+		name     string
+		valueLen int
+		wantSize uint64
+		wantErr  error
+	}{
+		{
+			name:     "one byte less than tableSize fits",
+			valueLen: tableSize - len(key) - table.MetadataLength - 1,
+			wantSize: tableSize - 1,
+		},
+		{
+			name:     "exactly tableSize is rejected",
+			valueLen: tableSize - len(key) - table.MetadataLength,
+			wantSize: tableSize,
+			wantErr:  storage.ErrEntryTooLarge,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := DefaultConfig()
+			c.Add("tableSize", uint64(tableSize))
+			s := testRamBlock(t, c)
+
+			e := entry.New()
+			e.SetKey(key)
+			e.SetValue(make([]byte, tt.valueLen))
+			e.SetTTL(1)
+			e.SetTimestamp(time.Now().UnixNano())
+
+			// PutRaw stores the entry as encoded by the callers.
+			raw := e.Encode()
+			require.Equal(t, tt.wantSize, uint64(len(raw)))
+
+			hkey := xxhash.Sum64([]byte(key))
+			err := s.PutRaw(hkey, raw)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			res, err := s.GetRaw(hkey)
+			require.NoError(t, err)
+			require.Equal(t, raw, res)
+		})
+	}
 }
 
 func TestRamBlock_GetRaw_KeyNotFound(t *testing.T) {
