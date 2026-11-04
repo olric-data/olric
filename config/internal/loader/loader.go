@@ -31,6 +31,7 @@ type server struct {
 	WriteQuorum                int     `yaml:"writeQuorum"`
 	ReadQuorum                 int     `yaml:"readQuorum"`
 	ReadRepair                 bool    `yaml:"readRepair"`
+	MemberCount                int     `yaml:"memberCount"`
 	MemberCountQuorum          int32   `yaml:"memberCountQuorum"`
 	RoutingTablePushInterval   string  `yaml:"routingTablePushInterval"`
 	TriggerBalancerInterval    string  `yaml:"triggerBalancerInterval"`

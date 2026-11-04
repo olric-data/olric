@@ -66,6 +66,9 @@ const (
 	// DefaultPartitionCount denotes default partition count in the cluster.
 	DefaultPartitionCount = 271
 
+	// MinimumPartitionCount denotes default and minimum partition count in an Olric cluster.
+	MinimumPartitionCount = 1
+
 	// DefaultLoadFactor is used by the consistent hashing function. Keep it small.
 	DefaultLoadFactor = 1.25
 
@@ -224,6 +227,10 @@ type Config struct {
 	// PartitionCount is 271, by default.
 	PartitionCount uint64
 
+	// MemberCount denotes expected member count in the cluster.
+	// PartitionCount must be greater than or equal to MemberCount.
+	MemberCount int
+
 	// ReplicaCount is 1, by default.
 	ReplicaCount int
 
@@ -346,8 +353,20 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	if c.PartitionCount < MinimumPartitionCount {
+		return fmt.Errorf("cannot specify PartitionCount smaller than MinimumPartitionCount")
+	}
+
+	if c.MemberCount > 0 && c.PartitionCount < uint64(c.MemberCount) {
+		return fmt.Errorf("cannot specify PartitionCount smaller than MemberCount: PartitionCount must be greater than or equal to MemberCount")
+	}
+
 	if c.MemberCountQuorum < MinimumMemberCountQuorum {
 		return fmt.Errorf("cannot specify MemberCountQuorum smaller than MinimumMemberCountQuorum")
+	}
+
+	if c.MemberCountQuorum > 0 && c.PartitionCount < uint64(c.MemberCountQuorum) {
+		return fmt.Errorf("cannot specify PartitionCount smaller than MemberCountQuorum: PartitionCount must be greater than or equal to MemberCountQuorum")
 	}
 
 	if c.BindAddr == "" {
@@ -426,8 +445,24 @@ func (c *Config) Sanitize() error {
 	if c.LoadFactor == 0 {
 		c.LoadFactor = DefaultLoadFactor
 	}
+	if c.MemberCountQuorum == 0 {
+		if c.MemberCount > 0 {
+			c.MemberCountQuorum = int32(c.MemberCount)
+		} else {
+			c.MemberCountQuorum = DefaultMemberCountQuorum
+		}
+	}
+
+	if c.MemberCount == 0 {
+		c.MemberCount = int(c.MemberCountQuorum)
+	}
+
 	if c.PartitionCount == 0 {
-		c.PartitionCount = DefaultPartitionCount
+		if c.MemberCount > 0 && uint64(c.MemberCount) > DefaultPartitionCount {
+			c.PartitionCount = uint64(c.MemberCount)
+		} else {
+			c.PartitionCount = DefaultPartitionCount
+		}
 	}
 	if c.ReplicaCount == 0 {
 		c.ReplicaCount = MinimumReplicaCount
@@ -438,10 +473,6 @@ func (c *Config) Sanitize() error {
 	}
 	if c.WriteQuorum == 0 {
 		c.WriteQuorum = DefaultWriteQuorum
-	}
-
-	if c.MemberCountQuorum == 0 {
-		c.MemberCountQuorum = DefaultMemberCountQuorum
 	}
 
 	if c.MemberlistConfig == nil {
@@ -538,6 +569,7 @@ func New(env string) *Config {
 		ReplicaCount:      1,
 		WriteQuorum:       1,
 		ReadQuorum:        1,
+		MemberCount:       1,
 		MemberCountQuorum: 1,
 		Peers:             []string{},
 		DMaps:             &DMaps{},

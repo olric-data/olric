@@ -399,6 +399,7 @@ func Load(filename string) (*Config, error) {
 		ReplicationMode:            c.Server.ReplicationMode,
 		ReadRepair:                 c.Server.ReadRepair,
 		LoadFactor:                 c.Server.LoadFactor,
+		MemberCount:                c.Server.MemberCount,
 		MemberCountQuorum:          c.Server.MemberCountQuorum,
 		Logger:                     log.New(logOutput, "", log.LstdFlags),
 		LogOutput:                  logOutput,

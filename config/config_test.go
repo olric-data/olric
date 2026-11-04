@@ -153,6 +153,7 @@ func TestConfig(t *testing.T) {
 	c.ReadQuorum = 1
 	c.ReadRepair = false
 	c.ReplicationMode = SyncReplicationMode
+	c.MemberCount = 1
 	c.MemberCountQuorum = 1
 	c.EnableClusterEventsChannel = true
 
@@ -241,4 +242,61 @@ func TestConfig_Initialize(t *testing.T) {
 	c := &Config{}
 	require.NoError(t, c.Sanitize())
 	require.NoError(t, c.Validate())
+}
+
+func TestConfig_PartitionCount_LessThan_MemberCount(t *testing.T) {
+	t.Run("PartitionCount less than MemberCount returns error", func(t *testing.T) {
+		c := New("local")
+		c.PartitionCount = 2
+		c.MemberCount = 4
+		err := c.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot specify PartitionCount smaller than MemberCount")
+		require.Contains(t, err.Error(), "PartitionCount must be greater than or equal to MemberCount")
+	})
+
+	t.Run("PartitionCount less than MemberCountQuorum returns error", func(t *testing.T) {
+		c := New("local")
+		c.PartitionCount = 2
+		c.MemberCount = 0
+		c.MemberCountQuorum = 4
+		err := c.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot specify PartitionCount smaller than MemberCountQuorum")
+		require.Contains(t, err.Error(), "PartitionCount must be greater than or equal to MemberCountQuorum")
+	})
+
+	t.Run("PartitionCount zero returns error", func(t *testing.T) {
+		c := New("local")
+		c.PartitionCount = 0
+		err := c.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "cannot specify PartitionCount smaller than MinimumPartitionCount")
+	})
+
+	t.Run("PartitionCount equal to MemberCount succeeds", func(t *testing.T) {
+		c := New("local")
+		c.PartitionCount = 4
+		c.MemberCount = 4
+		c.MemberCountQuorum = 4
+		require.NoError(t, c.Validate())
+	})
+
+	t.Run("PartitionCount greater than MemberCount succeeds", func(t *testing.T) {
+		c := New("local")
+		c.PartitionCount = 10
+		c.MemberCount = 4
+		c.MemberCountQuorum = 4
+		require.NoError(t, c.Validate())
+	})
+
+	t.Run("Sanitize sets PartitionCount when MemberCount exceeds DefaultPartitionCount", func(t *testing.T) {
+		c := &Config{
+			MemberCount: 500,
+		}
+		require.NoError(t, c.Sanitize())
+		require.Equal(t, uint64(500), c.PartitionCount)
+		require.Equal(t, int32(500), c.MemberCountQuorum)
+		require.NoError(t, c.Validate())
+	})
 }
